@@ -20,32 +20,32 @@
 (defn read-flag [computer flag]
   (get-in computer [:cpu :flags flag]))
 
-(defmulti read (fn [computer register] register))
+(defmulti read-register (fn [computer register] register))
 
-(defmethod read :a [computer _]
+(defmethod read-register :a [computer _]
   (get-in computer [:cpu :a]))
-(defmethod read :b [computer _]
+(defmethod read-register :b [computer _]
   (get-in computer [:cpu :b]))
-(defmethod read :c [computer _]
+(defmethod read-register :c [computer _]
   (get-in computer [:cpu :c]))
-(defmethod read :bc [computer _]
-  (+ (<< (read computer :b) 8)
-     (read computer :c)))
-(defmethod read :flags [computer _]
+(defmethod read-register :bc [computer _]
+  (+ (<< (read-register computer :b) 8)
+     (read-register computer :c)))
+(defmethod read-register :flags [computer _]
   (let [[c p ac z s] (map #(read-flag computer %) [:c :p :ac :z :s])]
     (+ c (<< p 2) (<< ac 4) (<< z 6) (<< s 7))))
 
-(defmulti store (fn [computer register value] register))
+(defmulti store-register (fn [computer register value] register))
 
-(defmethod store :a [computer _ value]
+(defmethod store-register :a [computer _ value]
   (assoc-in computer [:cpu :a] value))
-(defmethod store :b [computer _ value]
+(defmethod store-register :b [computer _ value]
   (assoc-in computer [:cpu :b] value))
-(defmethod store :c [computer _ value]
+(defmethod store-register :c [computer _ value]
   (assoc-in computer [:cpu :c] value))
-(defmethod store :bc [computer _ value]
+(defmethod store-register :bc [computer _ value]
   (let [b (>> value 8)
         c (& value 0xFF)]
     (-> computer
-      (store :b b)
-      (store :c c))))
+      (store-register :b b)
+      (store-register :c c))))

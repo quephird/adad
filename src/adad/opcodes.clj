@@ -11,33 +11,33 @@
   "Loads the BC register pair with two bytes,
    b2 gets assigned to B, b1 to C"
   [computer b1 b2]
-  (cpu/store computer :bc (+ (<< b2 8) b1)))
+  (cpu/store-register computer :bc (+ (<< b2 8) b1)))
 
 (defn stax-b
   "Stores the contents of the accumulator A
    at the memory location in the BC register pair"
   [computer]
-  (let [a       (cpu/read computer :a)
-        address (cpu/read computer :bc)]
+  (let [a       (cpu/read-register computer :a)
+        address (cpu/read-register computer :bc)]
     (assoc-in computer [:memory address] a)))
 
 (defn inx-b
   "Increments the value in the BC register pair;
    no flags affected"
   [computer]
-  (let [bc (cpu/read computer :bc)]
-    (cpu/store computer :bc (& (inc bc) 0xFFFF))))
+  (let [bc (cpu/read-register computer :bc)]
+    (cpu/store-register computer :bc (& (inc bc) 0xFFFF))))
 
 
 #_(defn inr-b
   "Increments the value in the B register;
   flags affected: zero, sign, parity, auxiliary carry"
   [computer]
-  (let [b             (cpu/read computer :b)
-        flags         (cpu/read computer :flags)
+  (let [b             (cpu/read-register computer :b)
+        flags         (cpu/read-register computer :flags)
         new-b         (& 0xff (inc b))
         new-parity-bit (parity new-b)]
-    (cpu/store computer :b (& (inc bc) 0xFFFF))))
+    (cpu/store-register computer :b (& (inc bc) 0xFFFF))))
 
 #_(def opcodes
   (map

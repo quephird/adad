@@ -1,6 +1,6 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
-            [adad.util :refer [<< & parity]]))
+            [adad.util :refer [<< & parity sign zero]]))
 
 (defn nop
   "No operation"
@@ -28,16 +28,23 @@
   (let [bc (cpu/read-register computer :bc)]
     (cpu/store-register computer :bc (& (inc bc) 0xFFFF))))
 
-
-#_(defn inr-b
+(defn inr-b
   "Increments the value in the B register;
   flags affected: zero, sign, parity, auxiliary carry"
   [computer]
-  (let [b             (cpu/read-register computer :b)
-        flags         (cpu/read-register computer :flags)
-        new-b         (& 0xff (inc b))
-        new-parity-bit (parity new-b)]
-    (cpu/store-register computer :b (& (inc bc) 0xFFFF))))
+  (let [b      (cpu/read-register computer :b)
+        new-b  (& 0xff (inc b))
+        new-p  (parity new-b)
+        new-s  (sign new-b)
+        new-z  (zero new-b)
+        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)
+        ]
+    (-> computer
+      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z)
+      (cpu/store-register :b new-b))))
 
 #_(def opcodes
   (map

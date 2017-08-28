@@ -20,6 +20,10 @@
 (defn read-flag [computer flag]
   (get-in computer [:cpu :flags flag]))
 
+(defn store-flag [computer flag value]
+  (assoc-in computer [:cpu :flags flag] (& value 0x01)))
+
+
 (defmulti read-register (fn [computer register] register))
 
 (defmethod read-register :a [computer _]

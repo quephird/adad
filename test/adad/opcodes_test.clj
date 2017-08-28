@@ -52,12 +52,71 @@
       (is (= 0x00 (cpu/read-register updated-computer :b)))
       (is (= 0x00 (cpu/read-register updated-computer :c))))))
 
-#_(deftest testing-inr-b
-  (testing "no overflow in b"
+(deftest testing-inr-b
+  (testing "value in b register is incremented"
     (let [b   0x42
           initial-computer (-> fresh-computer
                              (cpu/store-register :b b))
           updated-computer (subject/inr-b initial-computer)]
-      (is = 0x43 (cpu/read-register updated-computer :b))))
+      (is (= 0x43 (cpu/read-register updated-computer :b)))))
 
+  (testing "half carry flag is set"
+    (let [b   0x4f
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x01 (cpu/read-flag updated-computer :hc)))))
+
+  (testing "half carry flag is unset"
+    (let [b   0x10
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b)
+                             (cpu/store-flag :hc 0x01))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x00 (cpu/read-flag updated-computer :hc)))))
+
+  (testing "parity flag is set"
+    (let [b   0x00
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x01 (cpu/read-flag updated-computer :p)))))
+
+  (testing "parity flag is unset"
+    (let [b   0x10
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b)
+                             (cpu/store-flag :p 0x01))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x00 (cpu/read-flag updated-computer :p)))))
+
+  (testing "sign flag is set"
+    (let [b   0x7f
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x01 (cpu/read-flag updated-computer :s)))))
+
+  (testing "sign flag is unset"
+    (let [b   0xff
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b)
+                             (cpu/store-flag :s 0x01))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x00 (cpu/read-flag updated-computer :s)))))
+
+  (testing "zero flag is set"
+    (let [b   0xff
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x01 (cpu/read-flag updated-computer :z)))))
+
+  (testing "zero flag is unset"
+    (let [b   0x00
+          initial-computer (-> fresh-computer
+                             (cpu/store-register :b b)
+                             (cpu/store-flag :z 0x01))
+          updated-computer (subject/inr-b initial-computer)]
+      (is (= 0x00 (cpu/read-flag updated-computer :z)))))
 )

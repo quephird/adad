@@ -1,6 +1,8 @@
-# emulator101
+# adad
 
-A Clojure library designed to ... well, that part is up to you.
+A very very crude attempt at making an 8080 emulator.
+
+```
 
 ## Usage
 

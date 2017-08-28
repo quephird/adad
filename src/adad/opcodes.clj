@@ -37,8 +37,25 @@
         new-p  (parity new-b)
         new-s  (sign new-b)
         new-z  (zero new-b)
-        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)
-        ]
+        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)]
+    (-> computer
+      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z)
+      (cpu/store-register :b new-b))))
+
+
+(defn dcr-b
+  "Decrements the value in the B register;
+  flags affected: zero, sign, parity, auxiliary carry"
+  [computer]
+  (let [b      (cpu/read-register computer :b)
+        new-b  (& 0xff (dec b))
+        new-p  (parity new-b)
+        new-s  (sign new-b)
+        new-z  (zero new-b)
+        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)] ; Not sure of this
     (-> computer
       (cpu/store-flag :hc new-hc)
       (cpu/store-flag :p new-p)

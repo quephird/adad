@@ -1,5 +1,6 @@
 (ns adad.opcodes
-  (:require [adad.util :refer [<< & read store]]))
+  (:require [adad.cpu :as cpu]
+            [adad.util :refer [<< & parity]]))
 
 (defn nop
   "No operation"
@@ -10,23 +11,39 @@
   "Loads the BC register pair with two bytes,
    b2 gets assigned to B, b1 to C"
   [computer b1 b2]
-  (store computer :bc (+ (<< b2 8) b1)))
+  (cpu/store computer :bc (+ (<< b2 8) b1)))
 
 (defn stax-b
   "Stores the contents of the accumulator A
    at the memory location in the BC register pair"
   [computer]
-  (let [a       (read computer :a)
-        address (read computer :bc)]
+  (let [a       (cpu/read computer :a)
+        address (cpu/read computer :bc)]
     (assoc-in computer [:memory address] a)))
 
 (defn inx-b
-  "Stores the contents of the accumulator A
-   at the memory location in the BC register pair"
+  "Increments the value in the BC register pair;
+   no flags affected"
   [computer]
-  (let [bc (read computer :bc)]
-    (store computer :bc (& (inc bc) 0xFFFF))))
+  (let [bc (cpu/read computer :bc)]
+    (cpu/store computer :bc (& (inc bc) 0xFFFF))))
 
+
+#_(defn inr-b
+  "Increments the value in the B register;
+  flags affected: zero, sign, parity, auxiliary carry"
+  [computer]
+  (let [b             (cpu/read computer :b)
+        flags         (cpu/read computer :flags)
+        new-b         (& 0xff (inc b))
+        new-parity-bit (parity new-b)]
+    (cpu/store computer :b (& (inc bc) 0xFFFF))))
+
+#_(def opcodes
+  (map
+    (range 256)
+    [nop, lxi-b-d16, stax-b, inx-b, inr-b]
+    ))
 
 ; 0x00  NOP  1
 ; 0x01  LXI B,D16  3    B <- byte 3, C <- byte 2

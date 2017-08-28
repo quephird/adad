@@ -12,31 +12,29 @@
 
 (def parity (memoize parity*))
 
-(defmulti read (fn [computer register] register))
+(def fresh-cpu
+  {:a 2r00000000
+   :b 2r00000000
+   :c 2r00000000
+   :d 2r00000000
+   :e 2r00000000
+   :h 2r00000000
+   :l 2r00000000
+   :pc 2r00000000
+   :sp 2r00000000
+   :flags {:c  2r0
+           :u1 2r0
+           :p  2r0
+           :u3 2r0
+           :ac 2r0
+           :u5 2r0
+           :z  2r0
+           :s  2r0}})
 
-(defmethod read :a [computer _]
-  (get-in computer [:cpu :a]))
-(defmethod read :flags [computer _]
-  (get-in computer [:cpu :flags]))
-(defmethod read :b [computer _]
-  (get-in computer [:cpu :b]))
-(defmethod read :c [computer _]
-  (get-in computer [:cpu :c]))
-(defmethod read :bc [computer _]
-  (+ (<< (read computer :b) 8)
-     (read computer :c)))
+;; Uuuuggghhhhhhh there is no unsigned byte type in Clojure;
+;; byte has range -128 <= b <= 127. ;_;
+(def fresh-memory
+  (apply vector-of :int (repeat 65536 0x00)))
 
-(defmulti store (fn [computer register value] register))
-
-(defmethod store :a [computer _ value]
-  (assoc-in computer [:cpu :a] value))
-(defmethod store :b [computer _ value]
-  (assoc-in computer [:cpu :b] value))
-(defmethod store :c [computer _ value]
-  (assoc-in computer [:cpu :c] value))
-(defmethod store :bc [computer _ value]
-  (let [b (>> value 8)
-        c (& value 0xFF)]
-    (-> computer
-      (store :b b)
-      (store :c c))))
+(def fresh-computer
+  {:cpu fresh-cpu :memory fresh-memory})

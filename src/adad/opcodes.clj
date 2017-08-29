@@ -53,22 +53,31 @@
 (defn inr-h [computer] (inr computer :h))
 (defn inr-l [computer] (inr computer :l))
 
-(defn dcr-b
+(defn- dcr
   "Decrements the value in the B register;
   flags affected: zero, sign, parity, auxiliary carry"
-  [computer]
-  (let [b      (cpu/read-register computer :b)
-        new-b  (& 0xff (dec b))
-        new-p  (parity new-b)
-        new-s  (sign new-b)
-        new-z  (zero new-b)
-        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)] ; Not sure of this
+  [computer register]
+  (let [reg-val     (cpu/read-register computer register)
+        new-reg-val (& 0xff (dec reg-val))
+        new-p       (parity new-reg-val)
+        new-s       (sign new-reg-val)
+        new-z       (zero new-reg-val)
+        new-hc      (if (zero? (& new-reg-val 0x0f)) 0x01 0x00)] ; Not sure of this
     (-> computer
       (cpu/store-flag :hc new-hc)
       (cpu/store-flag :p new-p)
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z)
-      (cpu/store-register :b new-b))))
+      (cpu/store-register register new-reg-val))))
+
+(defn dcr-a [computer] (dcr computer :a))
+(defn dcr-b [computer] (dcr computer :b))
+(defn dcr-c [computer] (dcr computer :c))
+(defn dcr-d [computer] (dcr computer :d))
+(defn dcr-e [computer] (dcr computer :e))
+(defn dcr-h [computer] (dcr computer :h))
+(defn dcr-l [computer] (dcr computer :l))
+
 
 #_(def opcodes
   (map

@@ -1,6 +1,6 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
-            [adad.util :refer [<< & parity sign zero]]))
+            [adad.util :refer [<< >> & parity sign zero]]))
 
 (defn nop
   "No operation"
@@ -92,6 +92,17 @@
 (defn mvi-h [computer new-val] (mvi computer :h new-val))
 (defn mvi-l [computer new-val] (mvi computer :l new-val))
 
+(defn rlc
+  "Rotates the bits in the accumulator A to the left;
+   moves the old 7th bit into the carry flag and the 0th bit of A"
+  [computer]
+  (let [a       (cpu/read-register computer :a)
+        bit-7   (-> a (& 2r10000000) (>> 7))
+        new-a   (-> a (<< 1) (+ bit-7) (& 2r11111111))]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :c bit-7))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -107,7 +118,7 @@
    0x04 {:fn inr-b  :bytes 1 :cycles 1}
    0x05 {:fn dcr-b  :bytes 1 :cycles 1}
    0x06 {:fn mvi-b  :bytes 2 :cycles 2}
-
+   0x07 {:fn rlc    :bytes 1 :cycles 1}
    0x08 {:fn nop    :bytes 1 :cycles 1}
 
    0x0c {:fn inr-c  :bytes 1 :cycles 1}

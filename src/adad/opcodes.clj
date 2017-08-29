@@ -28,23 +28,30 @@
   (let [bc (cpu/read-register computer :bc)]
     (cpu/store-register computer :bc (& (inc bc) 0xFFFF))))
 
-(defn inr-b
-  "Increments the value in the B register;
+(defn- inr
+  "Helper function to increment the value in the register passed;
   flags affected: zero, sign, parity, auxiliary carry"
-  [computer]
-  (let [b      (cpu/read-register computer :b)
-        new-b  (& 0xff (inc b))
-        new-p  (parity new-b)
-        new-s  (sign new-b)
-        new-z  (zero new-b)
-        new-hc (if (zero? (& new-b 0x0f)) 0x01 0x00)]
+  [computer register]
+  (let [reg-val     (cpu/read-register computer register)
+        new-reg-val (& 0xff (inc reg-val))
+        new-p       (parity new-reg-val)
+        new-s       (sign new-reg-val)
+        new-z       (zero new-reg-val)
+        new-hc      (if (zero? (& new-reg-val 0x0f)) 0x01 0x00)]
     (-> computer
       (cpu/store-flag :hc new-hc)
       (cpu/store-flag :p new-p)
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z)
-      (cpu/store-register :b new-b))))
+      (cpu/store-register register new-reg-val))))
 
+(defn inr-a [computer] (inr computer :a))
+(defn inr-b [computer] (inr computer :b))
+(defn inr-c [computer] (inr computer :c))
+(defn inr-d [computer] (inr computer :d))
+(defn inr-e [computer] (inr computer :e))
+(defn inr-h [computer] (inr computer :h))
+(defn inr-l [computer] (inr computer :l))
 
 (defn dcr-b
   "Decrements the value in the B register;

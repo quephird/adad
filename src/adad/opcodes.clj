@@ -54,7 +54,7 @@
 (defn inr-l [computer] (inr computer :l))
 
 (defn- dcr
-  "Decrements the value in the B register;
+  "Helper function to decrement the value in the register passed;
   flags affected: zero, sign, parity, auxiliary carry"
   [computer register]
   (let [reg-val     (cpu/read-register computer register)
@@ -78,6 +78,19 @@
 (defn dcr-h [computer] (dcr computer :h))
 (defn dcr-l [computer] (dcr computer :l))
 
+(defn- mvi
+  "Helper function to load the specified register
+   with the byte value passed in; no flags affected"
+  [computer register new-val]
+  (cpu/store-register computer register new-val))
+
+(defn mvi-a [computer new-val] (mvi computer :a new-val))
+(defn mvi-b [computer new-val] (mvi computer :b new-val))
+(defn mvi-c [computer new-val] (mvi computer :c new-val))
+(defn mvi-d [computer new-val] (mvi computer :d new-val))
+(defn mvi-e [computer new-val] (mvi computer :e new-val))
+(defn mvi-h [computer new-val] (mvi computer :h new-val))
+(defn mvi-l [computer new-val] (mvi computer :l new-val))
 
 #_(def opcodes
   (map

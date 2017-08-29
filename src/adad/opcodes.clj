@@ -7,7 +7,7 @@
   [computer]
   computer)
 
-(defn lxi-b-d16
+(defn lxi-b
   "Loads the BC register pair with two bytes,
    b2 gets assigned to B, b1 to C"
   [computer b1 b2]
@@ -92,20 +92,61 @@
 (defn mvi-h [computer new-val] (mvi computer :h new-val))
 (defn mvi-l [computer new-val] (mvi computer :l new-val))
 
-#_(def opcodes
-  (map
-    (range 256)
-    [nop, lxi-b-d16, stax-b, inx-b, inr-b]
-    ))
+; Instead of simply making these a vector of hashes
+; that can be looked up by a numeric index, I made it
+; a nested hash so that 1) as I'm implementing opcodes
+; I can have gaps in this structure, and 2) the relationship
+; between the functions and the actual 8080 opcodes is far
+; more explicit here.
+(def opcodes
+  {
+   0x00 {:fn nop    :bytes 1 :cycles 1}
+   0x01 {:fn lxi-b  :bytes 3 :cycles 3}
+   0x02 {:fn stax-b :bytes 1 :cycles 2}
+   0x03 {:fn inx-b  :bytes 1 :cycles 1}
+   0x04 {:fn inr-b  :bytes 1 :cycles 1}
+   0x05 {:fn dcr-b  :bytes 1 :cycles 1}
+   0x06 {:fn mvi-b  :bytes 2 :cycles 2}
 
-; 0x00  NOP  1
-; 0x01  LXI B,D16  3    B <- byte 3, C <- byte 2
-; 0x02  STAX B  1    (BC) <- A
-; 0x03  INX B  1    BC <- BC+1
-; 0x04  INR B  1  Z, S, P, AC  B <- B+1
-; 0x05  DCR B  1  Z, S, P, AC  B <- B-1
-; 0x06  MVI B, D8  2    B <- byte 2
-; 0x07  RLC  1  CY  A = A << 1; bit 0 = prev bit 7; CY = prev bit 7
-; 0x08  -
-; 0x09  DAD B  1  CY  HL = HL + BC
-; 0x0a  LDAX B  1    A <- (BC)
+   0x08 {:fn nop    :bytes 1 :cycles 1}
+
+   0x0c {:fn inr-c  :bytes 1 :cycles 1}
+   0x0d {:fn dcr-c  :bytes 1 :cycles 1}
+   0x0e {:fn mvi-c  :bytes 2 :cycles 2}
+
+   0x10 {:fn nop    :bytes 1 :cycles 1}
+
+   0x14 {:fn inr-d  :bytes 1 :cycles 1}
+   0x15 {:fn dcr-d  :bytes 1 :cycles 1}
+   0x16 {:fn mvi-d  :bytes 2 :cycles 2}
+   0x1c {:fn inr-e  :bytes 1 :cycles 1}
+   0x1d {:fn dcr-e  :bytes 1 :cycles 1}
+   0x1e {:fn mvi-e  :bytes 2 :cycles 2}
+
+   0x18 {:fn nop    :bytes 1 :cycles 1}
+
+   0x24 {:fn inr-h  :bytes 1 :cycles 1}
+   0x25 {:fn dcr-h  :bytes 1 :cycles 1}
+   0x26 {:fn mvi-h  :bytes 2 :cycles 2}
+   0x2c {:fn inr-l  :bytes 1 :cycles 1}
+   0x2d {:fn dcr-l  :bytes 1 :cycles 1}
+   0x2e {:fn mvi-l  :bytes 2 :cycles 2}
+
+   0x28 {:fn nop    :bytes 1 :cycles 1}
+
+   0x3c {:fn inr-a  :bytes 1 :cycles 1}
+   0x3d {:fn dcr-a  :bytes 1 :cycles 1}
+   0x3e {:fn mvi-a  :bytes 2 :cycles 2}
+
+   0x38 {:fn nop    :bytes 1 :cycles 1}
+
+   0xcb {:fn nop    :bytes 1 :cycles 1}
+
+   0xd9 {:fn nop    :bytes 1 :cycles 1}
+
+   0xdd {:fn nop    :bytes 1 :cycles 1}
+
+   0xed {:fn nop    :bytes 1 :cycles 1}
+
+   0xfd {:fn nop    :bytes 1 :cycles 1}
+  })

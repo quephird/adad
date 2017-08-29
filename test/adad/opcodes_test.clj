@@ -4,10 +4,10 @@
             [adad.util :refer [<< fresh-computer]]
             [clojure.test :refer :all]))
 
-(deftest testing-lxi-b-d16
+(deftest testing-lxi-b
   (let [b1          0x42
         b2          0xff
-        updated-computer (subject/lxi-b-d16 fresh-computer b1 b2)]
+        updated-computer (subject/lxi-b fresh-computer b1 b2)]
     (is (= b2 (cpu/read-register updated-computer :b)))
     (is (= b1 (cpu/read-register updated-computer :c)))))
 

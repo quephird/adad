@@ -103,17 +103,21 @@
       (cpu/store-register :a new-a)
       (cpu/store-flag :c bit-7))))
 
-(defn dad-b
-  "Adds the value of the BC register pair to that
-   of the HL register pair; carry flag affected."
-  [computer]
-  (let [bc      (cpu/read-register computer :bc)
+(defn- dad
+  "Adds the value of the register pair passed in
+   to that of the HL register pair; carry flag affected."
+  [computer register]
+  (let [reg-val (cpu/read-register computer register)
         hl      (cpu/read-register computer :hl)
-        new-hl  (+ hl bc)
+        new-hl  (+ hl reg-val)
         new-c   (-> new-hl (& 0x10000) (>> 16))]
     (-> computer
       (cpu/store-register :hl new-hl)
       (cpu/store-flag :c new-c))))
+
+(defn dad-b [computer] (dad computer :bc))
+(defn dad-d [computer] (dad computer :de))
+(defn dad-h [computer] (dad computer :hl))
 
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
@@ -148,6 +152,7 @@
    0x1e {:fn mvi-e  :bytes 2 :cycles 2}
 
    0x18 {:fn nop    :bytes 1 :cycles 1}
+   0x19 {:fn dad-d  :bytes 1 :cycles 3}
 
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}
@@ -157,6 +162,7 @@
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}
 
    0x28 {:fn nop    :bytes 1 :cycles 1}
+   0x29 {:fn dad-h  :bytes 1 :cycles 3}
 
    0x3c {:fn inr-a  :bytes 1 :cycles 1}
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}

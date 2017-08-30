@@ -103,6 +103,18 @@
       (cpu/store-register :a new-a)
       (cpu/store-flag :c bit-7))))
 
+(defn dad-b
+  "Adds the value of the BC register pair to that
+   of the HL register pair; carry flag affected."
+  [computer]
+  (let [bc      (cpu/read-register computer :bc)
+        hl      (cpu/read-register computer :hl)
+        new-hl  (+ hl bc)
+        new-c   (-> new-hl (& 0x10000) (>> 16))]
+    (-> computer
+      (cpu/store-register :hl new-hl)
+      (cpu/store-flag :c new-c))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -120,6 +132,7 @@
    0x06 {:fn mvi-b  :bytes 2 :cycles 2}
    0x07 {:fn rlc    :bytes 1 :cycles 1}
    0x08 {:fn nop    :bytes 1 :cycles 1}
+   0x09 {:fn dad-b  :bytes 1 :cycles 3}
 
    0x0c {:fn inr-c  :bytes 1 :cycles 1}
    0x0d {:fn dcr-c  :bytes 1 :cycles 1}

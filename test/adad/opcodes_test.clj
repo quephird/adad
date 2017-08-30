@@ -198,3 +198,24 @@
           updated-computer (subject/rlc initial-computer)]
       (is (= 2r11001111 (cpu/read-register updated-computer :a)))
       (is (= 2r1 (cpu/read-flag updated-computer :c))))))
+
+(deftest testing-dad-b
+  (testing "no carry"
+    (let [bc  0x0001
+          hl  0x0002
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :bc bc)
+                               (cpu/store-register :hl hl))
+          updated-computer (subject/dad-b initial-computer)]
+      (is (= 0x0003 (cpu/read-register updated-computer :hl)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))))
+
+  (testing "with carry"
+    (let [bc  0x9001
+          hl  0xa002
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :bc bc)
+                               (cpu/store-register :hl hl))
+          updated-computer (subject/dad-b initial-computer)]
+      (is (= 0x3003 (cpu/read-register updated-computer :hl)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c))))))

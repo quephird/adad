@@ -57,6 +57,12 @@
 (defmethod read-register :bc [computer _]
   (+ (<< (read-register computer :b) 8)
      (read-register computer :c)))
+(defmethod read-register :de [computer _]
+ (+ (<< (read-register computer :d) 8)
+    (read-register computer :e)))
+(defmethod read-register :hl [computer _]
+  (+ (<< (read-register computer :h) 8)
+     (read-register computer :l)))
 (defmethod read-register :flags [computer _]
   (let [[c p ac z s] (map #(read-flag computer %) [:c :p :ac :z :s])]
     (+ c (<< p 2) (<< ac 4) (<< z 6) (<< s 7))))
@@ -78,8 +84,20 @@
 (defmethod store-register :l [computer _ value]
   (assoc-in computer [:cpu :l] value))
 (defmethod store-register :bc [computer _ value]
-  (let [b (>> value 8)
+  (let [b (-> value (>> 8) (& 0xff))
         c (& value 0xFF)]
     (-> computer
       (store-register :b b)
       (store-register :c c))))
+(defmethod store-register :de [computer _ value]
+  (let [d (-> value (>> 8) (& 0xff))
+        e (& value 0xFF)]
+    (-> computer
+      (store-register :d d)
+      (store-register :e e))))
+(defmethod store-register :hl [computer _ value]
+  (let [h (-> value (>> 8) (& 0xff))
+        l (& value 0xFF)]
+    (-> computer
+      (store-register :h h)
+      (store-register :l l))))

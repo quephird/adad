@@ -219,3 +219,14 @@
           updated-computer (subject/dad-b initial-computer)]
       (is (= 0x3003 (cpu/read-register updated-computer :hl)))
       (is (= 2r1 (cpu/read-flag updated-computer :c))))))
+
+(deftest testing-ldax-b
+  (let [b1      0x23
+        b2      0x45
+        address (+ (<< b1 8) b2)
+        initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :b b1)
+                             (cpu/store-register :c b2)
+                             (assoc-in [:memory address] 0x42))
+        updated-computer (subject/ldax-b initial-computer)]
+    (is (= 0x42 (cpu/read-register updated-computer :a)))))

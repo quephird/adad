@@ -13,13 +13,16 @@
   [computer b1 b2]
   (cpu/store-register computer :bc (+ (<< b2 8) b1)))
 
-(defn stax-b
+(defn- stax
   "Stores the contents of the accumulator A
-   at the memory location in the BC register pair"
-  [computer]
+   at the memory location in the register pair passed in"
+  [computer register]
   (let [a       (cpu/read-register computer :a)
-        address (cpu/read-register computer :bc)]
+        address (cpu/read-register computer register)]
     (assoc-in computer [:memory address] a)))
+
+(defn stax-b [computer] (stax computer :bc))
+(defn stax-d [computer] (stax computer :de))
 
 (defn inx-b
   "Increments the value in the BC register pair;
@@ -119,6 +122,18 @@
 (defn dad-d [computer] (dad computer :de))
 (defn dad-h [computer] (dad computer :hl))
 
+(defn- ldax [computer register]
+  "Stores the contents of the memory location pointed to
+   in the passed in register pair passed into the accumulator A"
+  [computer]
+  (let [a       (cpu/read-register computer :a)
+        address (cpu/read-register computer register)
+        new-a   (get-in computer [:memory address])]
+    (cpu/store-register computer :a new-a)))
+
+(defn ldax-b [computer] (ldax computer :bc))
+(defn ldax-d [computer] (ldax computer :de))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -137,6 +152,7 @@
    0x07 {:fn rlc    :bytes 1 :cycles 1}
    0x08 {:fn nop    :bytes 1 :cycles 1}
    0x09 {:fn dad-b  :bytes 1 :cycles 3}
+   0x0a {:fn ldax-b :bytes 1 :cycles 2}
 
    0x0c {:fn inr-c  :bytes 1 :cycles 1}
    0x0d {:fn dcr-c  :bytes 1 :cycles 1}
@@ -144,9 +160,13 @@
 
    0x10 {:fn nop    :bytes 1 :cycles 1}
 
+   0x12 {:fn stax-d :bytes 1 :cycles 2}
+
    0x14 {:fn inr-d  :bytes 1 :cycles 1}
    0x15 {:fn dcr-d  :bytes 1 :cycles 1}
    0x16 {:fn mvi-d  :bytes 2 :cycles 2}
+
+   0x1a {:fn ldax-d :bytes 1 :cycles 2}
    0x1c {:fn inr-e  :bytes 1 :cycles 1}
    0x1d {:fn dcr-e  :bytes 1 :cycles 1}
    0x1e {:fn mvi-e  :bytes 2 :cycles 2}

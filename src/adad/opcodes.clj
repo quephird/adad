@@ -30,12 +30,18 @@
 (defn stax-b [computer] (stax computer :bc))
 (defn stax-d [computer] (stax computer :de))
 
-(defn inx-b
-  "Increments the value in the BC register pair;
+(defn- inx
+  "Increments the value in the register pair passed in;
    no flags affected"
-  [computer]
-  (let [bc (cpu/read-register computer :bc)]
-    (cpu/store-register computer :bc (& (inc bc) 0xFFFF))))
+  [computer register]
+  (->> register
+    (cpu/read-register computer)
+    inc
+    (cpu/store-register computer register)))
+
+(defn inx-b [computer] (inx computer :bc))
+(defn inx-d [computer] (inx computer :de))
+(defn inx-h [computer] (inx computer :hl))
 
 (defn- inr
   "Helper function to increment the value in the register passed;
@@ -191,7 +197,7 @@
    0x10 {:fn nop    :bytes 1 :cycles 1}
    0x11 {:fn lxi-d  :bytes 3 :cycles 3}
    0x12 {:fn stax-d :bytes 1 :cycles 2}
-
+   0x13 {:fn inx-d  :bytes 1 :cycles 1}
    0x14 {:fn inr-d  :bytes 1 :cycles 1}
    0x15 {:fn dcr-d  :bytes 1 :cycles 1}
    0x16 {:fn mvi-d  :bytes 2 :cycles 2}
@@ -207,6 +213,7 @@
 
    0x21 {:fn lxi-h  :bytes 3 :cycles 3}
 
+   0x23 {:fn inx-h  :bytes 1 :cycles 1}
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}
    0x26 {:fn mvi-h  :bytes 2 :cycles 2}

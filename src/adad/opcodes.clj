@@ -7,15 +7,21 @@
   [computer]
   computer)
 
-(defn lxi-b
-  "Loads the BC register pair with two bytes,
-   b2 gets assigned to B, b1 to C"
-  [computer b1 b2]
-  (cpu/store-register computer :bc (+ (<< b2 8) b1)))
+(defn- lxi
+  "Loads the passed in register pair with two bytes:
+   b2 gets assigned to the first register, b1 to the second one;
+   no flags affected"
+  [computer register b1 b2]
+  (cpu/store-register computer register (+ (<< b2 8) b1)))
+
+(defn lxi-b [computer b1 b2] (lxi computer :bc b1 b2))
+(defn lxi-d [computer b1 b2] (lxi computer :de b1 b2))
+(defn lxi-h [computer b1 b2] (lxi computer :hl b1 b2))
 
 (defn- stax
   "Stores the contents of the accumulator A
-   at the memory location in the register pair passed in"
+   at the memory location in the register pair passed in;
+   no flags affected"
   [computer register]
   (let [a       (cpu/read-register computer :a)
         address (cpu/read-register computer register)]
@@ -183,7 +189,7 @@
    0x0e {:fn mvi-c  :bytes 2 :cycles 2}
    0x0f {:fn rrc    :bytes 1 :cycles 1}
    0x10 {:fn nop    :bytes 1 :cycles 1}
-
+   0x11 {:fn lxi-d  :bytes 3 :cycles 3}
    0x12 {:fn stax-d :bytes 1 :cycles 2}
 
    0x14 {:fn inr-d  :bytes 1 :cycles 1}
@@ -198,6 +204,8 @@
 
    0x18 {:fn nop    :bytes 1 :cycles 1}
    0x19 {:fn dad-d  :bytes 1 :cycles 3}
+
+   0x21 {:fn lxi-h  :bytes 3 :cycles 3}
 
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}

@@ -122,10 +122,10 @@
 (defn dad-d [computer] (dad computer :de))
 (defn dad-h [computer] (dad computer :hl))
 
-(defn- ldax [computer register]
+(defn- ldax
   "Stores the contents of the memory location pointed to
    in the passed in register pair passed into the accumulator A"
-  [computer]
+  [computer register]
   (let [a       (cpu/read-register computer :a)
         address (cpu/read-register computer register)
         new-a   (get-in computer [:memory address])]
@@ -133,6 +133,19 @@
 
 (defn ldax-b [computer] (ldax computer :bc))
 (defn ldax-d [computer] (ldax computer :de))
+
+(defn- dcx
+  "Decrements the contents of the register pair passed in;
+   no carry flags affected"
+  [computer register]
+  (->> register
+    (cpu/read-register computer)
+    dec
+    (cpu/store-register computer register)))
+
+(defn dcx-b [computer] (dcx computer :bc))
+(defn dcx-d [computer] (dcx computer :de))
+(defn dcx-h [computer] (dcx computer :hl))
 
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
@@ -153,6 +166,7 @@
    0x08 {:fn nop    :bytes 1 :cycles 1}
    0x09 {:fn dad-b  :bytes 1 :cycles 3}
    0x0a {:fn ldax-b :bytes 1 :cycles 2}
+   0x0b {:fn dcx-b  :bytes 1 :cycles 1}
 
    0x0c {:fn inr-c  :bytes 1 :cycles 1}
    0x0d {:fn dcr-c  :bytes 1 :cycles 1}
@@ -167,6 +181,7 @@
    0x16 {:fn mvi-d  :bytes 2 :cycles 2}
 
    0x1a {:fn ldax-d :bytes 1 :cycles 2}
+   0x1b {:fn dcx-d  :bytes 1 :cycles 1}
    0x1c {:fn inr-e  :bytes 1 :cycles 1}
    0x1d {:fn dcr-e  :bytes 1 :cycles 1}
    0x1e {:fn mvi-e  :bytes 2 :cycles 2}
@@ -177,6 +192,8 @@
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}
    0x26 {:fn mvi-h  :bytes 2 :cycles 2}
+
+   0x2b {:fn dcx-h  :bytes 1 :cycles 1}
    0x2c {:fn inr-l  :bytes 1 :cycles 1}
    0x2d {:fn dcr-l  :bytes 1 :cycles 1}
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}

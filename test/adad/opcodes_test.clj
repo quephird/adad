@@ -230,3 +230,12 @@
                              (assoc-in [:memory address] 0x42))
         updated-computer (subject/ldax-b initial-computer)]
     (is (= 0x42 (cpu/read-register updated-computer :a)))))
+
+(deftest testing-dcx-b
+  (let [b       0x23
+        c       0x45
+        initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :b b)
+                             (cpu/store-register :c c))
+        updated-computer (subject/dcx-b initial-computer)]
+    (is (= 0x2344 (cpu/read-register updated-computer :bc)))))

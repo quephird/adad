@@ -239,3 +239,20 @@
                              (cpu/store-register :c c))
         updated-computer (subject/dcx-b initial-computer)]
     (is (= 0x2344 (cpu/read-register updated-computer :bc)))))
+
+(deftest testing-rrc
+  (testing "no carry"
+    (let [a   2r10000000
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :a a))
+          updated-computer (subject/rrc initial-computer)]
+      (is (= 2r01000000 (cpu/read-register updated-computer :a)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))))
+
+  (testing "with carry"
+    (let [a   2r11100111
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :a a))
+          updated-computer (subject/rrc initial-computer)]
+      (is (= 2r11110011 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c))))))

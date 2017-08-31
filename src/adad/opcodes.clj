@@ -147,6 +147,17 @@
 (defn dcx-d [computer] (dcx computer :de))
 (defn dcx-h [computer] (dcx computer :hl))
 
+(defn rrc
+  "Rotates the bits in the accumulator A to the right;
+   moves the old 0th bit into the carry flag and the 7th bit of A"
+  [computer]
+  (let [a       (cpu/read-register computer :a)
+        bit-0   (& 2r00000001 a)
+        new-a   (-> a (>> 1) (+ (<< bit-0 7)))]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :c bit-0))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -167,11 +178,10 @@
    0x09 {:fn dad-b  :bytes 1 :cycles 3}
    0x0a {:fn ldax-b :bytes 1 :cycles 2}
    0x0b {:fn dcx-b  :bytes 1 :cycles 1}
-
    0x0c {:fn inr-c  :bytes 1 :cycles 1}
    0x0d {:fn dcr-c  :bytes 1 :cycles 1}
    0x0e {:fn mvi-c  :bytes 2 :cycles 2}
-
+   0x0f {:fn rrc    :bytes 1 :cycles 1}
    0x10 {:fn nop    :bytes 1 :cycles 1}
 
    0x12 {:fn stax-d :bytes 1 :cycles 2}

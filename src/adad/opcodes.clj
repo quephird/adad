@@ -170,6 +170,18 @@
       (cpu/store-register :a new-a)
       (cpu/store-flag :c bit-0))))
 
+(defn ral
+  "Rotates the contents of the accumulator A together with
+   the carry flag to the left"
+  [computer]
+  (let [a       (cpu/read-register computer :a)
+        bit-7   (-> a (& 2r10000000) (>> 7))
+        c       (cpu/read-flag computer :c)
+        new-a   (-> a (<< 1) (+ c) (& 2r11111111))]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :c bit-7))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -201,6 +213,7 @@
    0x14 {:fn inr-d  :bytes 1 :cycles 1}
    0x15 {:fn dcr-d  :bytes 1 :cycles 1}
    0x16 {:fn mvi-d  :bytes 2 :cycles 2}
+   0x17 {:fn ral    :bytes 1 :cycles 1}
 
    0x1a {:fn ldax-d :bytes 1 :cycles 2}
    0x1b {:fn dcx-d  :bytes 1 :cycles 1}

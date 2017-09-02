@@ -208,6 +208,17 @@
       (mem/store-memory address l)
       (mem/store-memory (inc address) h))))
 
+(defn lhld
+  "Loads the values in the memory address passed in, and the next one,
+   into the H and L registers; no carry flags affected"
+  [computer b1 b2]
+  (let [address (+ (<< b1 8) b2)
+        h       (mem/read-memory computer (inc address))
+        l       (mem/read-memory computer address)]
+    (-> computer
+      (cpu/store-register :h h)
+      (cpu/store-register :l l))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -255,10 +266,10 @@
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}
    0x26 {:fn mvi-h  :bytes 2 :cycles 2}
-
+   0x27 {:fn nop    :bytes 1 :cycles 1}
    0x28 {:fn nop    :bytes 1 :cycles 1}
    0x29 {:fn dad-h  :bytes 1 :cycles 3}
-
+   0x2a {:fn lhld   :bytes 3 :cycles 5}
    0x2b {:fn dcx-h  :bytes 1 :cycles 1}
    0x2c {:fn inr-l  :bytes 1 :cycles 1}
    0x2d {:fn dcr-l  :bytes 1 :cycles 1}

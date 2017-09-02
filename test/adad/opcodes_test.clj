@@ -310,3 +310,14 @@
         updated-computer (subject/shld initial-computer b1 b2)]
     (is (= 0x12 (mem/read-memory updated-computer address)))
     (is (= 0x34 (mem/read-memory updated-computer (inc address))))))
+
+(deftest testing-lhld
+  (let [b1      0x23
+        b2      0x45
+        address (+ (<< b1 8) b2)
+        initial-computer (-> cpu/fresh-computer
+                           (mem/store-memory address 0x12)
+                           (mem/store-memory (inc address) 0x34))
+        updated-computer (subject/lhld initial-computer b1 b2)]
+    (is (= 0x12 (cpu/read-register updated-computer :l)))
+    (is (= 0x34 (cpu/read-register updated-computer :h)))))

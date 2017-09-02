@@ -329,3 +329,8 @@
                              (cpu/store-register :a a))
           updated-computer (subject/cma initial-computer)]
       (is (= 2r00001111 (cpu/read-register updated-computer :a))))))
+
+(deftest testing-stc
+  (testing "carry flag is set properly")
+    (let [updated-computer (subject/stc cpu/fresh-computer)]
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))))

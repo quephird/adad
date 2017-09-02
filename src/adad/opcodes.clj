@@ -228,6 +228,11 @@
     (! $)
     (cpu/store-register computer :a $)))
 
+(defn stc
+  "Sets the carry bit to one unconditionally"
+  [computer]
+  (cpu/store-flag computer :c 2r1))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -285,6 +290,8 @@
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}
    0x2f {:fn cma    :bytes 1 :cycles 1}
    0x30 {:fn nop    :bytes 1 :cycles 1}
+
+   0x37 {:fn stc    :bytes 1 :cycles 1}
 
    0x3c {:fn inr-a  :bytes 1 :cycles 1}
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}

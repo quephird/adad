@@ -321,3 +321,11 @@
         updated-computer (subject/lhld initial-computer b1 b2)]
     (is (= 0x12 (cpu/read-register updated-computer :l)))
     (is (= 0x34 (cpu/read-register updated-computer :h)))))
+
+(deftest testing-cma
+  (testing "value in accumulator is complemented"
+    (let [a   2r11110000
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a))
+          updated-computer (subject/cma initial-computer)]
+      (is (= 2r00001111 (cpu/read-register updated-computer :a))))))

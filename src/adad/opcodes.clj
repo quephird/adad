@@ -1,7 +1,7 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
             [adad.memory :as mem]
-            [adad.util :refer [<< >> & parity sign zero]]))
+            [adad.util :refer [<< >> & ! parity sign zero]]))
 
 (defn nop
   "No operation"
@@ -219,6 +219,15 @@
       (cpu/store-register :h h)
       (cpu/store-register :l l))))
 
+(defn cma
+  "Sets the value of the accumulator to the complement its current value;
+   no flags affected"
+  [computer]
+  (as-> computer $
+    (cpu/read-register $ :a)
+    (! $)
+    (cpu/store-register computer :a $)))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -274,7 +283,7 @@
    0x2c {:fn inr-l  :bytes 1 :cycles 1}
    0x2d {:fn dcr-l  :bytes 1 :cycles 1}
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}
-
+   0x2f {:fn cma    :bytes 1 :cycles 1}
    0x30 {:fn nop    :bytes 1 :cycles 1}
 
    0x3c {:fn inr-a  :bytes 1 :cycles 1}

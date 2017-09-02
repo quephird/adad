@@ -4,6 +4,7 @@
 (def >> bit-shift-right)
 (def & bit-and)
 (def | bit-or)
+(defn ! [b] (bit-and 255 (bit-not b)))
 
 (defn parity* [b]
   (->> (range 8)

@@ -276,5 +276,25 @@
                                (cpu/store-flag :c c))
           updated-computer (subject/ral initial-computer)]
       (is (= 2r00000010 (cpu/read-register updated-computer :a)))
-      (is (= 2r1 (cpu/read-flag updated-computer :c)))))
-      )
+      (is (= 2r1 (cpu/read-flag updated-computer :c))))))
+
+(deftest testing-rar
+  (testing "no carry, no zeroth bit"
+    (let [a   2r10000000
+          c   2r0
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :a a)
+                               (cpu/store-flag :c c))
+          updated-computer (subject/rar initial-computer)]
+      (is (= 2r01000000 (cpu/read-register updated-computer :a)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))))
+
+  (testing "no carry, zeroth bit on"
+    (let [a   2r10000001
+          c   2r0
+          initial-computer (-> cpu/fresh-computer
+                               (cpu/store-register :a a)
+                               (cpu/store-flag :c c))
+          updated-computer (subject/rar initial-computer)]
+      (is (= 2r01000000 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c))))))

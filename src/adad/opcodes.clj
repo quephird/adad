@@ -1,5 +1,6 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
+            [adad.memory :as mem]
             [adad.util :refer [<< >> & parity sign zero]]))
 
 (defn nop
@@ -25,7 +26,7 @@
   [computer register]
   (let [a       (cpu/read-register computer :a)
         address (cpu/read-register computer register)]
-    (assoc-in computer [:memory address] a)))
+    (mem/store-memory computer address a)))
 
 (defn stax-b [computer] (stax computer :bc))
 (defn stax-d [computer] (stax computer :de))
@@ -140,7 +141,7 @@
   [computer register]
   (let [a       (cpu/read-register computer :a)
         address (cpu/read-register computer register)
-        new-a   (get-in computer [:memory address])]
+        new-a   (mem/read-memory computer address)]
     (cpu/store-register computer :a new-a)))
 
 (defn ldax-b [computer] (ldax computer :bc))
@@ -194,6 +195,19 @@
       (cpu/store-register :a new-a)
       (cpu/store-flag :c bit-0))))
 
+(defn shld
+  "Loads the value in the H register into the memory location
+   represented by the two bytes passed in, and the value in the
+   L register into the very next memory location; no carry flags
+   affected"
+  [computer b1 b2]
+  (let [address (+ (<< b1 8) b2)
+        h       (cpu/read-register computer :h)
+        l       (cpu/read-register computer :l)]
+    (-> computer
+      (mem/store-memory address l)
+      (mem/store-memory (inc address) h))))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -234,21 +248,23 @@
    0x1d {:fn dcr-e  :bytes 1 :cycles 1}
    0x1e {:fn mvi-e  :bytes 2 :cycles 2}
    0x1f {:fn rar    :bytes 1 :cycles 1}
-
+   0x20 {:fn nop    :bytes 1 :cycles 1}
    0x21 {:fn lxi-h  :bytes 3 :cycles 3}
-
+   0x22 {:fn shld   :bytes 3 :cycles 5}
    0x23 {:fn inx-h  :bytes 1 :cycles 1}
    0x24 {:fn inr-h  :bytes 1 :cycles 1}
    0x25 {:fn dcr-h  :bytes 1 :cycles 1}
    0x26 {:fn mvi-h  :bytes 2 :cycles 2}
+
+   0x28 {:fn nop    :bytes 1 :cycles 1}
+   0x29 {:fn dad-h  :bytes 1 :cycles 3}
 
    0x2b {:fn dcx-h  :bytes 1 :cycles 1}
    0x2c {:fn inr-l  :bytes 1 :cycles 1}
    0x2d {:fn dcr-l  :bytes 1 :cycles 1}
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}
 
-   0x28 {:fn nop    :bytes 1 :cycles 1}
-   0x29 {:fn dad-h  :bytes 1 :cycles 3}
+   0x30 {:fn nop    :bytes 1 :cycles 1}
 
    0x3c {:fn inr-a  :bytes 1 :cycles 1}
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}

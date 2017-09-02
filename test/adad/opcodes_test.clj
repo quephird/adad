@@ -1,6 +1,7 @@
 (ns adad.opcodes-test
   (:require [adad.opcodes :as subject]
             [adad.cpu :as cpu]
+            [adad.memory :as mem]
             [adad.util :refer [<<]]
             [clojure.test :refer :all]))
 
@@ -19,7 +20,7 @@
                              (cpu/store-register :b b1)
                              (cpu/store-register :c b2))
         updated-computer (subject/stax-b initial-computer)]
-    (is (= 0xFF (get-in updated-computer [:memory (+ (<< b1 8) b2)])))))
+    (is (= 0xFF (mem/read-memory updated-computer (+ (<< b1 8) b2))))))
 
 (deftest testing-inx-b
   (testing "no overflow in c"
@@ -227,7 +228,7 @@
         initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b1)
                              (cpu/store-register :c b2)
-                             (assoc-in [:memory address] 0x42))
+                             (mem/store-memory address 0x42))
         updated-computer (subject/ldax-b initial-computer)]
     (is (= 0x42 (cpu/read-register updated-computer :a)))))
 
@@ -298,3 +299,14 @@
           updated-computer (subject/rar initial-computer)]
       (is (= 2r01000000 (cpu/read-register updated-computer :a)))
       (is (= 2r1 (cpu/read-flag updated-computer :c))))))
+
+(deftest testing-shld
+  (let [b1      0x23
+        b2      0x45
+        address (+ (<< b1 8) b2)
+        initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :h 0x34)
+                             (cpu/store-register :l 0x12))
+        updated-computer (subject/shld initial-computer b1 b2)]
+    (is (= 0x12 (mem/read-memory updated-computer address)))
+    (is (= 0x34 (mem/read-memory updated-computer (inc address))))))

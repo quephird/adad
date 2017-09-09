@@ -18,6 +18,7 @@
 (defn lxi-b [computer b1 b2] (lxi computer :bc b1 b2))
 (defn lxi-d [computer b1 b2] (lxi computer :de b1 b2))
 (defn lxi-h [computer b1 b2] (lxi computer :hl b1 b2))
+(defn lxi-sp [computer b1 b2] (lxi computer :sp b1 b2))
 
 (defn- stax
   "Stores the contents of the accumulator A
@@ -290,6 +291,7 @@
    0x2e {:fn mvi-l  :bytes 2 :cycles 2}
    0x2f {:fn cma    :bytes 1 :cycles 1}
    0x30 {:fn nop    :bytes 1 :cycles 1}
+   0x31 {:fn lxi-sp :bytes 3 :cycles 3}
 
    0x37 {:fn stc    :bytes 1 :cycles 1}
 

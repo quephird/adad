@@ -14,7 +14,8 @@
    :h  2r00000000
    :l  2r00000000
    :pc 2r00000000
-   :sp 2r00000000
+   :splo 2r00000000
+   :sphi 2r00000000
    :flags {:c  2r0
            :u1 2r0
            :p  2r0
@@ -37,67 +38,51 @@
 (defn store-flag [computer flag value]
   (assoc-in computer [:cpu :flags flag] (& value 0x01)))
 
+(defn read-register [computer register]
+  (case register
+    (:a :b :c :d :e :h :l :sphi :splo)
+      (get-in computer [:cpu register])
+    :flags
+      (let [[c p ac z s] (map #(read-flag computer %) [:c :p :ac :z :s])]
+        (+ c (<< p 2) (<< ac 4) (<< z 6) (<< s 7)))
+    :bc
+      (+ (<< (read-register computer :b) 8)
+         (read-register computer :c))
+    :de
+      (+ (<< (read-register computer :d) 8)
+         (read-register computer :e))
+    :hl
+      (+ (<< (read-register computer :h) 8)
+         (read-register computer :l))
+    :sp
+      (+ (<< (read-register computer :sphi) 8)
+         (read-register computer :splo))))
 
-(defmulti read-register (fn [computer register] register))
-
-(defmethod read-register :a [computer _]
-  (get-in computer [:cpu :a]))
-(defmethod read-register :b [computer _]
-  (get-in computer [:cpu :b]))
-(defmethod read-register :c [computer _]
-  (get-in computer [:cpu :c]))
-(defmethod read-register :d [computer _]
-  (get-in computer [:cpu :d]))
-(defmethod read-register :e [computer _]
-  (get-in computer [:cpu :e]))
-(defmethod read-register :h [computer _]
-  (get-in computer [:cpu :h]))
-(defmethod read-register :l [computer _]
-  (get-in computer [:cpu :l]))
-(defmethod read-register :bc [computer _]
-  (+ (<< (read-register computer :b) 8)
-     (read-register computer :c)))
-(defmethod read-register :de [computer _]
- (+ (<< (read-register computer :d) 8)
-    (read-register computer :e)))
-(defmethod read-register :hl [computer _]
-  (+ (<< (read-register computer :h) 8)
-     (read-register computer :l)))
-(defmethod read-register :flags [computer _]
-  (let [[c p ac z s] (map #(read-flag computer %) [:c :p :ac :z :s])]
-    (+ c (<< p 2) (<< ac 4) (<< z 6) (<< s 7))))
-
-(defmulti store-register (fn [computer register value] register))
-
-(defmethod store-register :a [computer _ value]
-  (assoc-in computer [:cpu :a] value))
-(defmethod store-register :b [computer _ value]
-  (assoc-in computer [:cpu :b] value))
-(defmethod store-register :c [computer _ value]
-  (assoc-in computer [:cpu :c] value))
-(defmethod store-register :d [computer _ value]
-  (assoc-in computer [:cpu :d] value))
-(defmethod store-register :e [computer _ value]
-  (assoc-in computer [:cpu :e] value))
-(defmethod store-register :h [computer _ value]
-  (assoc-in computer [:cpu :h] value))
-(defmethod store-register :l [computer _ value]
-  (assoc-in computer [:cpu :l] value))
-(defmethod store-register :bc [computer _ value]
-  (let [b (-> value (>> 8) (& 0xff))
-        c (& value 0xFF)]
-    (-> computer
-      (store-register :b b)
-      (store-register :c c))))
-(defmethod store-register :de [computer _ value]
-  (let [d (-> value (>> 8) (& 0xff))
-        e (& value 0xFF)]
-    (-> computer
-      (store-register :d d)
-      (store-register :e e))))
-(defmethod store-register :hl [computer _ value]
-  (let [h (-> value (>> 8) (& 0xff))
-        l (& value 0xFF)]
-    (-> computer
-      (store-register :h h)
-      (store-register :l l))))
+(defn store-register [computer register value]
+  (case register
+    (:a :b :c :d :e :h :l :sphi :splo)
+      (assoc-in computer [:cpu register] value)
+    :bc
+      (let [b (-> value (>> 8) (& 0xff))
+            c (& value 0xFF)]
+        (-> computer
+          (store-register :b b)
+          (store-register :c c)))
+    :de
+      (let [d (-> value (>> 8) (& 0xff))
+            e (& value 0xFF)]
+        (-> computer
+          (store-register :d d)
+          (store-register :e e)))
+    :hl
+      (let [h (-> value (>> 8) (& 0xff))
+            l (& value 0xFF)]
+        (-> computer
+          (store-register :h h)
+          (store-register :l l)))
+    :sp
+      (let [sphi (-> value (>> 8) (& 0xff))
+            splo (& value 0xFF)]
+        (-> computer
+          (store-register :sphi sphi)
+          (store-register :splo splo)))))

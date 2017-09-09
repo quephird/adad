@@ -213,7 +213,7 @@
   "Loads the values in the memory address passed in, and the next one,
    into the H and L registers; no carry flags affected"
   [computer b1 b2]
-  (let [address (+ (<< b1 8) b2)
+  (let [address (+ (<< b2 8) b1)
         h       (mem/read-memory computer (inc address))
         l       (mem/read-memory computer address)]
     (-> computer
@@ -228,6 +228,15 @@
     (cpu/read-register $ :a)
     (! $)
     (cpu/store-register computer :a $)))
+
+(defn lda
+  "Stores the contents of the memory location represented
+   by the two bytes passed into the accumulator A;
+   no flags affected"
+  [computer b1 b2]
+  (let [address (+ (<< b2 8) b1)
+        a       (mem/read-memory computer address)]
+    (cpu/store-register computer :a a)))
 
 (defn stc
   "Sets the carry bit to one unconditionally"

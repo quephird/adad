@@ -312,9 +312,9 @@
     (is (= 0x34 (mem/read-memory updated-computer (inc address))))))
 
 (deftest testing-lhld
-  (let [b1      0x23
-        b2      0x45
-        address (+ (<< b1 8) b2)
+  (let [b1      0x45
+        b2      0x23
+        address (+ (<< b2 8) b1)
         initial-computer (-> cpu/fresh-computer
                            (mem/store-memory address 0x12)
                            (mem/store-memory (inc address) 0x34))
@@ -334,3 +334,12 @@
   (testing "carry flag is set properly")
     (let [updated-computer (subject/stc cpu/fresh-computer)]
       (is (= 2r1 (cpu/read-flag updated-computer :c)))))
+
+(deftest testing-lda
+  (let [b1      0x45
+        b2      0x23
+        address (+ (<< b2 8) b1)
+        initial-computer (-> cpu/fresh-computer
+                           (mem/store-memory address 0x42))
+        updated-computer (subject/lda initial-computer b1 b2)]
+    (is (= 0x42 (cpu/read-register updated-computer :a)))))

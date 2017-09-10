@@ -160,6 +160,7 @@
 (defn dcx-b [computer] (dcx computer :bc))
 (defn dcx-d [computer] (dcx computer :de))
 (defn dcx-h [computer] (dcx computer :hl))
+(defn dcx-sp [computer] (dcx computer :sp))
 
 (defn rrc
   "Rotates the bits in the accumulator A to the right;
@@ -238,6 +239,15 @@
         a       (mem/read-memory computer address)]
     (cpu/store-register computer :a a)))
 
+(defn sta
+  "Stores the contents of the accumulator A into the
+   memory location represented by the two bytes passed in;
+   no flags affected"
+  [computer b1 b2]
+  (let [address (+ (<< b2 8) b1)
+        a       (cpu/read-register computer :a)]
+    (mem/store-memory computer address a)))
+
 (defn stc
   "Sets the carry bit to one unconditionally"
   [computer]
@@ -301,9 +311,11 @@
    0x2f {:fn cma    :bytes 1 :cycles 1}
    0x30 {:fn nop    :bytes 1 :cycles 1}
    0x31 {:fn lxi-sp :bytes 3 :cycles 3}
+   0x32 {:fn sta    :bytes 3 :cycles 3}
 
    0x37 {:fn stc    :bytes 1 :cycles 1}
 
+   0x3b {:fn dcx-sp :bytes 1 :cycles 1}
    0x3c {:fn inr-a  :bytes 1 :cycles 1}
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}
    0x3e {:fn mvi-a  :bytes 2 :cycles 2}

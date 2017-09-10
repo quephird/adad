@@ -38,6 +38,7 @@
 (defn store-flag [computer flag value]
   (assoc-in computer [:cpu :flags flag] (& value 0x01)))
 
+;; TODO: Split out readers for pairs into new function read-register-pair
 (defn read-register [computer register]
   (case register
     (:a :b :c :d :e :h :l :sphi :splo)
@@ -58,6 +59,7 @@
       (+ (<< (read-register computer :sphi) 8)
          (read-register computer :splo))))
 
+;; TODO: Split out implementations for pairs into new function store-register-pair
 (defn store-register [computer register value]
   (case register
     (:a :b :c :d :e :h :l :sphi :splo)

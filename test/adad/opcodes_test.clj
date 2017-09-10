@@ -343,3 +343,12 @@
                            (mem/store-memory address 0x42))
         updated-computer (subject/lda initial-computer b1 b2)]
     (is (= 0x42 (cpu/read-register updated-computer :a)))))
+
+(deftest testing-sta
+  (let [b1      0x45
+        b2      0x23
+        address (+ (<< b2 8) b1)
+        initial-computer (-> cpu/fresh-computer
+                           (cpu/store-register :a 0x42))
+        updated-computer (subject/sta initial-computer b1 b2)]
+    (is (= 0x42 (mem/read-memory updated-computer address)))))

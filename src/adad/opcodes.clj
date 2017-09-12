@@ -117,6 +117,27 @@
 (defn dcr-h [computer] (dcr computer :h))
 (defn dcr-l [computer] (dcr computer :l))
 
+(defn dcr-m
+  "Decrements the value contained at the memory location pointed
+   to by the HL register pair; flags affected: zero, sign, parity,
+   auxiliary carry"
+  [computer]
+  (let [h           (cpu/read-register computer :h)
+        l           (cpu/read-register computer :l)
+        address     (+ (<< h 8) l)
+        mem-val     (mem/read-memory computer address)
+        new-mem-val (& 0xff (dec mem-val))
+        new-p       (parity new-mem-val)
+        new-s       (sign new-mem-val)
+        new-z       (zero new-mem-val)
+        new-hc      (if (zero? (& new-mem-val 0x0f)) 0x01 0x00)]
+    (-> computer
+      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z)
+      (mem/store-memory address new-mem-val))))
+
 (defn- mvi
   "Helper function to load the specified register
    with the byte value passed in; no flags affected"
@@ -130,6 +151,17 @@
 (defn mvi-e [computer new-val] (mvi computer :e new-val))
 (defn mvi-h [computer new-val] (mvi computer :h new-val))
 (defn mvi-l [computer new-val] (mvi computer :l new-val))
+
+(defn mvi-m
+  "Decrements the value contained at the memory location pointed
+   to by the HL register pair; flags affected: zero, sign, parity,
+   auxiliary carry"
+  [computer b1]
+  (let [h           (cpu/read-register computer :h)
+        l           (cpu/read-register computer :l)
+        address     (+ (<< h 8) l)]
+    (-> computer
+      (mem/store-memory address b1))))
 
 (defn rlc
   "Rotates the bits in the accumulator A to the left;
@@ -336,7 +368,8 @@
    0x32 {:fn sta    :bytes 3 :cycles 3}
    0x33 {:fn inx-sp :bytes 1 :cycles 1}
    0x34 {:fn inr-m  :bytes 1 :cycles 1}
-
+   0x35 {:fn dcr-m  :bytes 1 :cycles 1}
+   0x36 {:fn mvi-m  :bytes 2 :cycles 2}
    0x37 {:fn stc    :bytes 1 :cycles 1}
 
    0x3b {:fn dcx-sp :bytes 1 :cycles 1}

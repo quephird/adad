@@ -121,6 +121,19 @@
           updated-computer (subject/inr-b initial-computer)]
       (is (= 0x00 (cpu/read-flag updated-computer :z))))))
 
+(deftest testing-inr-m
+  (testing "value in b register is incremented"
+    (let [h       0x12
+          l       0x34
+          address (+ (<< h 8) l)
+          old-val 0x42
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :h h)
+                             (cpu/store-register :l l)
+                             (mem/store-memory address old-val))
+          updated-computer (subject/inr-m initial-computer)]
+      (is (= 0x43 (mem/read-memory updated-computer address))))))
+
 (deftest testing-dcr-b
   (testing "value in b register is decremented"
     (let [b   0x43

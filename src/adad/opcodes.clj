@@ -44,6 +44,7 @@
 (defn inx-b [computer] (inx computer :bc))
 (defn inx-d [computer] (inx computer :de))
 (defn inx-h [computer] (inx computer :hl))
+(defn inx-sp [computer] (inx computer :sp))
 
 (defn- inr
   "Helper function to increment the value in the register passed;
@@ -69,6 +70,27 @@
 (defn inr-e [computer] (inr computer :e))
 (defn inr-h [computer] (inr computer :h))
 (defn inr-l [computer] (inr computer :l))
+
+(defn inr-m
+  "Increments the value contained at the memory location pointed
+   to by the HL register pair; flags affected: zero, sign, parity,
+   auxiliary carry"
+  [computer]
+  (let [h           (cpu/read-register computer :h)
+        l           (cpu/read-register computer :l)
+        address     (+ (<< h 8) l)
+        mem-val     (mem/read-memory computer address)
+        new-mem-val (& 0xff (inc mem-val))
+        new-p       (parity new-mem-val)
+        new-s       (sign new-mem-val)
+        new-z       (zero new-mem-val)
+        new-hc      (if (zero? (& new-mem-val 0x0f)) 0x01 0x00)]
+    (-> computer
+      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z)
+      (mem/store-memory address new-mem-val))))
 
 (defn- dcr
   "Helper function to decrement the value in the register passed;
@@ -312,6 +334,8 @@
    0x30 {:fn nop    :bytes 1 :cycles 1}
    0x31 {:fn lxi-sp :bytes 3 :cycles 3}
    0x32 {:fn sta    :bytes 3 :cycles 3}
+   0x33 {:fn inx-sp :bytes 1 :cycles 1}
+   0x34 {:fn inr-m  :bytes 1 :cycles 1}
 
    0x37 {:fn stc    :bytes 1 :cycles 1}
 

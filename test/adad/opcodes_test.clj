@@ -377,3 +377,11 @@
                            (cpu/store-register :a 0x42))
         updated-computer (subject/sta initial-computer b1 b2)]
     (is (= 0x42 (mem/read-memory updated-computer address)))))
+
+(deftest testing-cmc
+  (testing "value in carry flag is complemented"
+    (let [c   2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-flag :c c))
+          updated-computer (subject/cmc initial-computer)]
+      (is (= 2r0 (cpu/read-flag updated-computer :c))))))

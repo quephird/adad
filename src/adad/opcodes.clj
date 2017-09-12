@@ -189,6 +189,7 @@
 (defn dad-b [computer] (dad computer :bc))
 (defn dad-d [computer] (dad computer :de))
 (defn dad-h [computer] (dad computer :hl))
+(defn dad-sp [computer] (dad computer :sp))
 
 (defn- ldax
   "Stores the contents of the memory location pointed to
@@ -307,6 +308,13 @@
   [computer]
   (cpu/store-flag computer :c 2r1))
 
+(defn cmc
+  "Updates the carry flag with the complement of its current value"
+  [computer]
+  (let [c     (cpu/read-flag computer :c)
+        new-c (& (! c) 0x01)]
+    (cpu/store-flag computer :c new-c)))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -371,13 +379,14 @@
    0x35 {:fn dcr-m  :bytes 1 :cycles 1}
    0x36 {:fn mvi-m  :bytes 2 :cycles 2}
    0x37 {:fn stc    :bytes 1 :cycles 1}
-
+   0x38 {:fn nop    :bytes 1 :cycles 1}
+   0x39 {:fn dad-sp :bytes 1 :cycles 3}
+   0x3a {:fn lda    :bytes 3 :cycles 4}
    0x3b {:fn dcx-sp :bytes 1 :cycles 1}
    0x3c {:fn inr-a  :bytes 1 :cycles 1}
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}
    0x3e {:fn mvi-a  :bytes 2 :cycles 2}
-
-   0x38 {:fn nop    :bytes 1 :cycles 1}
+   0x3f {:fn cmc    :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}
 

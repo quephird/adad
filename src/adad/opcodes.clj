@@ -315,6 +315,21 @@
         new-c (& (! c) 0x01)]
     (cpu/store-flag computer :c new-c)))
 
+(defn make-mov-function
+  "Makes a function that moves the value from the second register
+   passed in to the first register passed in; no flags are affected
+   in any of the resultant functions"
+  [to-sym from-sym]
+  (fn [computer]
+    (let [from-sym-val (cpu/read-register computer from-sym)]
+      (cpu/store-register computer to-sym from-sym-val))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]
+        to-sym   [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "mov-%s-%s" (name to-sym) (name from-sym)))
+          (make-mov-function to-sym from-sym)))
+
 ; Instead of simply making these a vector of hashes
 ; that can be looked up by a numeric index, I made it
 ; a nested hash so that 1) as I'm implementing opcodes
@@ -387,6 +402,62 @@
    0x3d {:fn dcr-a  :bytes 1 :cycles 1}
    0x3e {:fn mvi-a  :bytes 2 :cycles 2}
    0x3f {:fn cmc    :bytes 1 :cycles 1}
+   0x40 {:fn mov-b-b :bytes 1 :cycles 1}
+   0x41 {:fn mov-b-c :bytes 1 :cycles 1}
+   0x42 {:fn mov-b-d :bytes 1 :cycles 1}
+   0x43 {:fn mov-b-e :bytes 1 :cycles 1}
+   0x44 {:fn mov-b-h :bytes 1 :cycles 1}
+   0x45 {:fn mov-b-l :bytes 1 :cycles 1}
+
+   0x47 {:fn mov-b-a :bytes 1 :cycles 1}
+   0x48 {:fn mov-c-b :bytes 1 :cycles 1}
+   0x49 {:fn mov-c-c :bytes 1 :cycles 1}
+   0x4a {:fn mov-c-d :bytes 1 :cycles 1}
+   0x4b {:fn mov-c-e :bytes 1 :cycles 1}
+   0x4c {:fn mov-c-h :bytes 1 :cycles 1}
+   0x4d {:fn mov-c-l :bytes 1 :cycles 1}
+
+   0x4f {:fn mov-c-a :bytes 1 :cycles 1}
+   0x50 {:fn mov-d-b :bytes 1 :cycles 1}
+   0x51 {:fn mov-d-c :bytes 1 :cycles 1}
+   0x52 {:fn mov-d-d :bytes 1 :cycles 1}
+   0x53 {:fn mov-d-e :bytes 1 :cycles 1}
+   0x54 {:fn mov-d-h :bytes 1 :cycles 1}
+   0x55 {:fn mov-d-l :bytes 1 :cycles 1}
+
+   0x57 {:fn mov-d-a :bytes 1 :cycles 1}
+   0x58 {:fn mov-e-b :bytes 1 :cycles 1}
+   0x59 {:fn mov-e-c :bytes 1 :cycles 1}
+   0x5a {:fn mov-e-d :bytes 1 :cycles 1}
+   0x5b {:fn mov-e-e :bytes 1 :cycles 1}
+   0x5c {:fn mov-e-h :bytes 1 :cycles 1}
+   0x5d {:fn mov-e-l :bytes 1 :cycles 1}
+
+   0x5f {:fn mov-e-a :bytes 1 :cycles 1}
+   0x60 {:fn mov-h-b :bytes 1 :cycles 1}
+   0x61 {:fn mov-h-c :bytes 1 :cycles 1}
+   0x62 {:fn mov-h-d :bytes 1 :cycles 1}
+   0x63 {:fn mov-h-e :bytes 1 :cycles 1}
+   0x64 {:fn mov-h-h :bytes 1 :cycles 1}
+   0x65 {:fn mov-h-l :bytes 1 :cycles 1}
+
+   0x67 {:fn mov-h-a :bytes 1 :cycles 1}
+   0x68 {:fn mov-l-b :bytes 1 :cycles 1}
+   0x69 {:fn mov-l-c :bytes 1 :cycles 1}
+   0x6a {:fn mov-l-d :bytes 1 :cycles 1}
+   0x6b {:fn mov-l-e :bytes 1 :cycles 1}
+   0x6c {:fn mov-l-h :bytes 1 :cycles 1}
+   0x6d {:fn mov-l-l :bytes 1 :cycles 1}
+
+   0x6f {:fn mov-l-a :bytes 1 :cycles 1}
+
+   0x78 {:fn mov-a-b :bytes 1 :cycles 1}
+   0x79 {:fn mov-a-c :bytes 1 :cycles 1}
+   0x7a {:fn mov-a-d :bytes 1 :cycles 1}
+   0x7b {:fn mov-a-e :bytes 1 :cycles 1}
+   0x7c {:fn mov-a-h :bytes 1 :cycles 1}
+   0x7d {:fn mov-a-l :bytes 1 :cycles 1}
+   0x7f {:fn mov-a-a :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}
 

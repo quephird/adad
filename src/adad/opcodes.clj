@@ -1,7 +1,16 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
             [adad.memory :as mem]
-            [adad.util :refer [<< >> & ! parity sign zero]]))
+            [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign zero]]))
+
+;; TODO: Need to properly implement auxiliary carry where necessary;
+;;         should probably do so using AND between two addends and checking
+;;         if there are any set bits in result (namely if result is > 0)
+
+;; TODO: Should add metadata to all functions including:
+;;        * flags set
+;;        * number of cycles
+;;        * number of bytes to move the program counter
 
 (defn nop
   "No operation"
@@ -361,6 +370,34 @@
   (intern *ns*
           (symbol (format "mov-m-%s" (name from-sym)))
           (make-mov-to-m-function from-sym)))
+
+(defn make-add-a-function
+  "Makes a function that adds the value from the register
+   passed in to the A register; flags affected:
+   zero, sign, parity, carry, auxiliary carry"
+  [from-sym]
+  (fn [computer]
+    (let [from-reg-val (cpu/read-register computer from-sym)
+          old-a        (cpu/read-register computer :a)
+          new-value    (+ old-a from-reg-val)
+          new-a        (& new-value 0xff)
+          new-ac       (auxiliary-carry from-reg-val old-a)
+          new-c        (carry from-reg-val old-a)
+          new-p        (parity new-value)
+          new-s        (sign new-value)
+          new-z        (zero new-value)]
+      (-> computer
+        (cpu/store-register :a new-a)
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :c new-c)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "add-%s" (name from-sym)))
+          (make-add-a-function from-sym)))
 
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"

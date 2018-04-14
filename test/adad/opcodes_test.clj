@@ -77,14 +77,14 @@
       (is (= 0x00 (cpu/read-flag updated-computer :hc)))))
 
   (testing "parity flag is set"
-    (let [b   0x00
+    (let [b   2r00000010
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b))
           updated-computer (subject/inr-b initial-computer)]
       (is (= 0x01 (cpu/read-flag updated-computer :p)))))
 
   (testing "parity flag is unset"
-    (let [b   0x10
+    (let [b   0x0f
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b)
                              (cpu/store-flag :p 0x01))
@@ -152,14 +152,14 @@
       (is (= 0x00 (cpu/read-flag updated-computer :hc)))))
 
   (testing "parity flag is set"
-    (let [b   0xff
+    (let [b   2r11111101
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b))
           updated-computer (subject/dcr-b initial-computer)]
       (is (= 0x01 (cpu/read-flag updated-computer :p)))))
 
   (testing "parity flag is unset"
-    (let [b   0x01
+    (let [b   2r11111111
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b)
                              (cpu/store-flag :p 0x01))
@@ -385,3 +385,19 @@
                              (cpu/store-flag :c c))
           updated-computer (subject/cmc initial-computer)]
       (is (= 2r0 (cpu/read-flag updated-computer :c))))))
+
+(deftest testing-add-b
+  (testing "add-b"
+    (let [a  0x6c
+          d  0x2e
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :d d))
+          updated-computer (subject/add-d initial-computer)]
+      (is (= 0x9a (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r1 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z)))
+      )))

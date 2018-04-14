@@ -17,3 +17,10 @@
     (is (= 0 (subject/parity 2r10000000)))
     (is (= 1 (subject/parity 2r11111111)))
     (is (= 0 (subject/parity 2r11111110)))))
+
+(deftest testing-carry
+  (testing "carry function returns the correct values"
+    (is (= 0 (subject/carry 2r00000000 2r00000000)))
+    (is (= 0 (subject/carry 2r11111111 2r00000000)))
+    (is (= 1 (subject/carry 2r11000000 2r01000000)))
+))

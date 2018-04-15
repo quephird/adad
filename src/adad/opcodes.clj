@@ -3,10 +3,6 @@
             [adad.memory :as mem]
             [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign zero]]))
 
-;; TODO: Need to properly implement auxiliary carry where necessary;
-;;         should probably do so using AND between two addends and checking
-;;         if there are any set bits in result (namely if result is > 0)
-
 ;; TODO: Should add metadata to all functions including:
 ;;        * flags set
 ;;        * number of cycles
@@ -399,6 +395,25 @@
           (symbol (format "add-%s" (name from-sym)))
           (make-add-function from-sym)))
 
+(defn add-m
+  [computer]
+  (let [from-addr-val (mem/read-memory-hl computer)
+        old-a         (cpu/read-register computer :a)
+        new-value     (+ old-a from-addr-val)
+        new-a         (& new-value 0xff)
+        new-ac        (auxiliary-carry from-addr-val old-a)
+        new-c         (carry from-addr-val old-a)
+        new-p         (parity new-value)
+        new-s         (sign new-value)
+        new-z         (zero new-value)]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :ac new-ac)
+      (cpu/store-flag :c new-c)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z))))
+
 (defn make-adc-function
   "Makes a function that adds the value from the register
    passed in to the A register; flags affected:
@@ -570,6 +585,22 @@
    0x7d {:fn mov-a-l :bytes 1 :cycles 1}
    0x7e {:fn mov-a-m :bytes 1 :cycles 1}
    0x7f {:fn mov-a-a :bytes 1 :cycles 1}
+   0x80 {:fn add-b   :bytes 1 :cycles 1}
+   0x81 {:fn add-c   :bytes 1 :cycles 1}
+   0x82 {:fn add-d   :bytes 1 :cycles 1}
+   0x83 {:fn add-e   :bytes 1 :cycles 1}
+   0x84 {:fn add-h   :bytes 1 :cycles 1}
+   0x85 {:fn add-l   :bytes 1 :cycles 1}
+   0x86 {:fn add-m   :bytes 1 :cycles 1}
+   0x87 {:fn adc-a   :bytes 1 :cycles 1}
+   0x88 {:fn adc-b   :bytes 1 :cycles 1}
+   0x89 {:fn adc-c   :bytes 1 :cycles 1}
+   0x8a {:fn adc-d   :bytes 1 :cycles 1}
+   0x8b {:fn adc-e   :bytes 1 :cycles 1}
+   0x8c {:fn adc-h   :bytes 1 :cycles 1}
+   0x8d {:fn adc-l   :bytes 1 :cycles 1}
+
+   0x8f {:fn adc-a   :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}
 

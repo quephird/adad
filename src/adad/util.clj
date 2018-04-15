@@ -9,7 +9,7 @@
 (defn zero
   "Returns a bit value instead of a boolean one"
   [b]
-  (if (zero? b) 0x01 0x00))
+  (if (zero? (& b 0xff)) 0x01 0x00))
 
 (defn parity* [b]
   (->> (range 8)
@@ -28,13 +28,19 @@
 
 (defn auxiliary-carry
   "Checks whether there were any carries during the addition
-   of two bytes"
-  [b1 b2]
-  (if (> (bit-and b1 b2) 0) 0x1 0x0))
+   of two bytes and alternatively with a carry bit"
+  ([b1 b2]
+  (auxiliary-carry b1 b2 0x0))
+  ([b1 b2 c]
+  (if (> (| (& b1 b2)
+            (& c (+ b1 b2))) 0) 0x1 0x0)))
 
-(defn carry [b1 b2]
-  "Checks where there will be a carry from the last bit
-   during the addition of two bytes"
-  (-> (+ b1 b2)
+(defn carry
+  "Checks where there will be a carry from the last bit during
+   the addition of two bytes and alternatively with a carry bit"
+  ([b1 b2]
+  (carry b1 b2 2r0))
+  ([b1 b2 c]
+  (-> (+ b1 b2 c)
     (& 2r100000000)
-    (>> 8)))
+    (>> 8))))

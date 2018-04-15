@@ -371,7 +371,7 @@
           (symbol (format "mov-m-%s" (name from-sym)))
           (make-mov-to-m-function from-sym)))
 
-(defn make-add-a-function
+(defn make-add-function
   "Makes a function that adds the value from the register
    passed in to the A register; flags affected:
    zero, sign, parity, carry, auxiliary carry"
@@ -397,7 +397,37 @@
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
           (symbol (format "add-%s" (name from-sym)))
-          (make-add-a-function from-sym)))
+          (make-add-function from-sym)))
+
+(defn make-adc-function
+  "Makes a function that adds the value from the register
+   passed in to the A register; flags affected:
+   zero, sign, parity, carry, auxiliary carry"
+  [from-sym]
+  (fn [computer]
+    (let [from-reg-val (cpu/read-register computer from-sym)
+          old-a        (cpu/read-register computer :a)
+          old-c        (cpu/read-flag computer :c)
+          new-value    (+ old-a from-reg-val old-c)
+          new-a        (& new-value 0xff)
+          new-ac       (auxiliary-carry from-reg-val old-a old-c)
+          new-c        (carry from-reg-val old-a old-c)
+          new-p        (parity new-value)
+          new-s        (sign new-value)
+          new-z        (zero new-value)]
+      (-> computer
+        (cpu/store-register :a new-a)
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :c new-c)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "adc-%s" (name from-sym)))
+          (make-adc-function from-sym)))
+
 
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"

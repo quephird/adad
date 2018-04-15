@@ -386,8 +386,8 @@
           updated-computer (subject/cmc initial-computer)]
       (is (= 2r0 (cpu/read-flag updated-computer :c))))))
 
-(deftest testing-add-b
-  (testing "add-b"
+(deftest testing-add-d
+  (testing "add-d"
     (let [a  0x6c
           d  0x2e
           initial-computer (-> cpu/fresh-computer
@@ -401,3 +401,52 @@
       (is (= 2r1 (cpu/read-flag updated-computer :s)))
       (is (= 2r0 (cpu/read-flag updated-computer :z)))
       )))
+
+(deftest testing-adc-d
+  (testing "adc-d with no carry bit initially set"
+    (let [a  0x42
+          d  0x3d
+          c  2r0
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :d d)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/adc-d initial-computer)]
+      (is (= 0x7f (cpu/read-register updated-computer :a)))
+      (is (= 2r0 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))
+      (is (= 2r0 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z)))))
+
+  (testing "adc-d with the carry bit initially set but then reset"
+    (let [a  0x42
+          d  0x3d
+          c  2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :d d)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/adc-d initial-computer)]
+      (is (= 0x80 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))
+      (is (= 2r0 (cpu/read-flag updated-computer :p)))
+      (is (= 2r1 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z)))))
+
+  (testing "adc-d with the carry bit initially set and set again"
+    (let [a  0xf0
+          d  0x0f
+          c  2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :d d)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/adc-d initial-computer)]
+      (is (= 0x00 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r1 (cpu/read-flag updated-computer :z))))))

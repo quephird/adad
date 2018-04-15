@@ -443,6 +443,25 @@
           (symbol (format "adc-%s" (name from-sym)))
           (make-adc-function from-sym)))
 
+(defn adc-m
+  [computer]
+  (let [from-addr-val (mem/read-memory-hl computer)
+        old-a         (cpu/read-register computer :a)
+        old-c         (cpu/read-flag computer :c)
+        new-value     (+ old-a from-addr-val old-c)
+        new-a         (& new-value 0xff)
+        new-ac        (auxiliary-carry from-addr-val old-a old-c)
+        new-c         (carry from-addr-val old-a old-c)
+        new-p         (parity new-value)
+        new-s         (sign new-value)
+        new-z         (zero new-value)]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :ac new-ac)
+      (cpu/store-flag :c new-c)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z))))
 
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"
@@ -599,7 +618,7 @@
    0x8b {:fn adc-e   :bytes 1 :cycles 1}
    0x8c {:fn adc-h   :bytes 1 :cycles 1}
    0x8d {:fn adc-l   :bytes 1 :cycles 1}
-
+   0x8e {:fn adc-m   :bytes 1 :cycles 1}
    0x8f {:fn adc-a   :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}

@@ -457,6 +457,8 @@
           l  0x34
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :a a)
+                             (cpu/store-register :h h)
+                             (cpu/store-register :l l)
                              (mem/store-memory-hl 0x2e))
           updated-computer (subject/add-m initial-computer)]
       (is (= 0x9a (cpu/read-register updated-computer :a)))
@@ -465,3 +467,21 @@
       (is (= 2r1 (cpu/read-flag updated-computer :p)))
       (is (= 2r1 (cpu/read-flag updated-computer :s)))
       (is (= 2r0 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-adc-m
+  (testing "adc-m"
+    (let [a  0xf0
+          h  0x12
+          l  0x34
+          c  2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (mem/store-memory-hl 0x0f)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/adc-m initial-computer)]
+      (is (= 0x00 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r1 (cpu/read-flag updated-computer :z))))))

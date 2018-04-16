@@ -485,3 +485,67 @@
       (is (= 2r1 (cpu/read-flag updated-computer :p)))
       (is (= 2r0 (cpu/read-flag updated-computer :s)))
       (is (= 2r1 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-sub-a
+  (testing "sub-a"
+    (let [a  0x3e
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a))
+          updated-computer (subject/sub-a initial-computer)]
+      (is (= 0x00 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r1 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-sub-m
+  (testing "sub-m"
+    (let [a  0x01
+          h  0x12
+          l  0x34
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (mem/store-memory-hl 0x01))
+          updated-computer (subject/sub-m initial-computer)]
+      (is (= 0x00 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r1 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-sbb-a
+  (testing "sbb-l"
+    (let [a  0x04
+          l  0x02
+          c  2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :l l)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/sbb-l initial-computer)]
+      (is (= 0x01 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r0 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-sbb-m
+  (testing "sbb-m"
+    (let [a  0x03
+          h  0x12
+          l  0x34
+          c  2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (mem/store-memory-hl 0x00)
+                             (cpu/store-flag :c c))
+          updated-computer (subject/sbb-m initial-computer)]
+      (is (= 0x02 (cpu/read-register updated-computer :a)))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))
+      (is (= 2r1 (cpu/read-flag updated-computer :c)))
+      (is (= 2r0 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z))))))

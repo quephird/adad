@@ -6,6 +6,15 @@
 (def | bit-or)
 (defn ! [b] (bit-and 255 (bit-not b)))
 
+(defn twos-complement
+  "Takes the two's complement of a byte by taking the
+   one's complement first then adding one"
+  [b]
+  (-> b
+    bit-not
+    (+ 2r1)
+    (bit-and 2r11111111)))
+
 (defn zero
   "Returns a bit value instead of a boolean one"
   [b]

@@ -1,7 +1,7 @@
 (ns adad.opcodes
   (:require [adad.cpu :as cpu]
             [adad.memory :as mem]
-            [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign zero]]))
+            [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign twos-complement zero]]))
 
 ;; TODO: Should add metadata to all functions including:
 ;;        * flags set
@@ -469,6 +469,117 @@
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z))))
 
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "adc-%s" (name from-sym)))
+          (make-adc-function from-sym)))
+
+(defn make-sub-function
+  "Makes a function that subtracts the value from the register
+   passed in from the A register; flags affected:
+   zero, sign, parity, carry, auxiliary carry"
+  [from-sym]
+  (fn [computer]
+    (let [reg-val      (cpu/read-register computer from-sym)
+          neg-reg-val  (twos-complement reg-val)
+          old-a        (cpu/read-register computer :a)
+          new-value    (+ old-a neg-reg-val)
+          new-a        (& new-value 0xff)
+          new-ac       (auxiliary-carry neg-reg-val old-a)
+          new-c        (carry neg-reg-val old-a)
+          new-p        (parity new-value)
+          new-s        (sign new-value)
+          new-z        (zero new-value)]
+      (-> computer
+        (cpu/store-register :a new-a)
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :c new-c)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "sub-%s" (name from-sym)))
+          (make-sub-function from-sym)))
+
+(defn sub-m
+  "Subtract the value contained in the memory location, pointed
+   to by the HL register pair, from the A register;
+   flags affected: zero, sign, parity, carry, auxiliary carry"
+  [computer]
+  (let [addr-val     (mem/read-memory-hl computer)
+        neg-addr-val (twos-complement addr-val)
+        old-a        (cpu/read-register computer :a)
+        new-value    (+ old-a neg-addr-val)
+        new-a        (& new-value 0xff)
+        new-ac       (auxiliary-carry neg-addr-val old-a)
+        new-c        (carry neg-addr-val old-a)
+        new-p        (parity new-value)
+        new-s        (sign new-value)
+        new-z        (zero new-value)]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :ac new-ac)
+      (cpu/store-flag :c new-c)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z))))
+
+(defn make-sbb-function
+  "Makes a function that subtracts the value from the register
+   passed in, as well as the carry bit, from the A register;
+   flags affected: zero, sign, parity, carry, auxiliary carry"
+  [from-sym]
+  (fn [computer]
+    (let [reg-val      (cpu/read-register computer from-sym)
+          old-c        (cpu/read-flag computer :c)
+          neg-val      (twos-complement (+ reg-val old-c))
+          old-a        (cpu/read-register computer :a)
+          new-value    (+ old-a neg-val)
+          new-a        (& new-value 0xff)
+          new-ac       (auxiliary-carry neg-val old-a)
+          new-c        (carry neg-val old-a)
+          new-p        (parity new-value)
+          new-s        (sign new-value)
+          new-z        (zero new-value)]
+      (-> computer
+        (cpu/store-register :a new-a)
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :c new-c)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "sbb-%s" (name from-sym)))
+          (make-sbb-function from-sym)))
+
+(defn sbb-m
+  "Subtract the value contained in the memory location, pointed
+   to by the HL register pair, and the carry bit from the A register;
+   flags affected: zero, sign, parity, carry, auxiliary carry"
+  [computer]
+  (let [addr-val     (mem/read-memory-hl computer)
+        old-c        (cpu/read-flag computer :c)
+        neg-val      (twos-complement (+ addr-val old-c))
+        old-a        (cpu/read-register computer :a)
+        new-value    (+ old-a neg-val)
+        new-a        (& new-value 0xff)
+        new-ac       (auxiliary-carry neg-val old-a)
+        new-c        (carry neg-val old-a)
+        new-p        (parity new-value)
+        new-s        (sign new-value)
+        new-z        (zero new-value)]
+    (-> computer
+      (cpu/store-register :a new-a)
+      (cpu/store-flag :ac new-ac)
+      (cpu/store-flag :c new-c)
+      (cpu/store-flag :p new-p)
+      (cpu/store-flag :s new-s)
+      (cpu/store-flag :z new-z))))
+
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"
   [computer]
@@ -626,6 +737,22 @@
    0x8d {:fn adc-l   :bytes 1 :cycles 1}
    0x8e {:fn adc-m   :bytes 1 :cycles 1}
    0x8f {:fn adc-a   :bytes 1 :cycles 1}
+   0x90 {:fn sub-b   :bytes 1 :cycles 1}
+   0x91 {:fn sub-c   :bytes 1 :cycles 1}
+   0x92 {:fn sub-d   :bytes 1 :cycles 1}
+   0x93 {:fn sub-e   :bytes 1 :cycles 1}
+   0x94 {:fn sub-h   :bytes 1 :cycles 1}
+   0x95 {:fn sub-l   :bytes 1 :cycles 1}
+   0x96 {:fn sub-m  :bytes 1 :cycles 1}
+   0x97 {:fn sbb-a   :bytes 1 :cycles 1}
+   0x98 {:fn sbb-b   :bytes 1 :cycles 1}
+   0x99 {:fn sbb-c   :bytes 1 :cycles 1}
+   0x9a {:fn sbb-d   :bytes 1 :cycles 1}
+   0x9b {:fn sbb-e   :bytes 1 :cycles 1}
+   0x9c {:fn sbb-h   :bytes 1 :cycles 1}
+   0x9d {:fn sbb-l   :bytes 1 :cycles 1}
+   0x9e {:fn sbb-m   :bytes 1 :cycles 1}
+   0x9f {:fn sbb-a   :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}
 

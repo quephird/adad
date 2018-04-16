@@ -396,6 +396,9 @@
           (make-add-function from-sym)))
 
 (defn add-m
+  "Adds the value contained in the memory location, pointed
+   to by the HL register pair, to the A register; flags affected:
+   zero, sign, parity, carry, auxiliary carry"
   [computer]
   (let [from-addr-val (mem/read-memory-hl computer)
         old-a         (cpu/read-register computer :a)
@@ -416,8 +419,8 @@
 
 (defn make-adc-function
   "Makes a function that adds the value from the register
-   passed in to the A register; flags affected:
-   zero, sign, parity, carry, auxiliary carry"
+   passed in, as well as the carry flag, to the A register;
+   flags affected: zero, sign, parity, carry, auxiliary carry"
   [from-sym]
   (fn [computer]
     (let [from-reg-val (cpu/read-register computer from-sym)
@@ -444,6 +447,9 @@
           (make-adc-function from-sym)))
 
 (defn adc-m
+  "Adds the value contained in the memory location, pointed
+   to by the HL register pair, and the carry flag to the A register;
+   flags affected: zero, sign, parity, carry, auxiliary carry"
   [computer]
   (let [from-addr-val (mem/read-memory-hl computer)
         old-a         (cpu/read-register computer :a)

@@ -549,3 +549,19 @@
       (is (= 2r0 (cpu/read-flag updated-computer :p)))
       (is (= 2r0 (cpu/read-flag updated-computer :s)))
       (is (= 2r0 (cpu/read-flag updated-computer :z))))))
+
+(deftest testing-ana-c
+  (testing "ana-c"
+    (let [a  0xfc
+          c  0x0f
+          cf 2r1
+          initial-computer (-> cpu/fresh-computer
+                             (cpu/store-register :a a)
+                             (cpu/store-register :c c)
+                             (cpu/store-flag :c cf))
+          updated-computer (subject/ana-c initial-computer)]
+      (is (= 0x0c (cpu/read-register updated-computer :a)))
+      (is (= 2r0 (cpu/read-flag updated-computer :c)))
+      (is (= 2r1 (cpu/read-flag updated-computer :p)))
+      (is (= 2r0 (cpu/read-flag updated-computer :s)))
+      (is (= 2r0 (cpu/read-flag updated-computer :z))))))

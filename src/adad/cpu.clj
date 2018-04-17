@@ -5,6 +5,8 @@
 ;_; Java's `byte` is signed and has range -128 <= b <= 127.
 ;_; Uuuuuggghhhhhhhhh.
 
+;; TODO: Need to rename flags to avoid clash between to :c's
+;;       maybe :cf, :u1f, :pf, :u3f, :af, :u5f, :zf, :sf
 (def fresh-cpu
   {:a  2r00000000
    :b  2r00000000

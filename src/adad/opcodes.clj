@@ -4,9 +4,9 @@
             [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign twos-complement zero]]))
 
 ;; TODO: Should add metadata to all functions including:
-;;        * flags set
-;;        * number of cycles
-;;        * number of bytes to move the program counter
+;;        * flags set {:flags-set :ac :c :p :s :z}
+;;        * number of cycles {:cycles 3}
+;;        * number of bytes to move the program counter {:bytes 1}
 
 (defn nop
   "No operation"
@@ -580,6 +580,30 @@
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z))))
 
+(defn make-ana-function
+  "Makes a function that ANDs the value from the register
+   passed in with the value in the A register. The carry bit
+   is _always_ reset; flags affected: zero, sign, parity, carry"
+  [from-sym]
+  (fn [computer]
+    (let [reg-val      (cpu/read-register computer from-sym)
+          old-a        (cpu/read-register computer :a)
+          new-val      (& reg-val old-a)
+          new-p        (parity new-val)
+          new-s        (sign new-val)
+          new-z        (zero new-val)]
+      (-> computer
+        (cpu/store-register :a new-val)
+        (cpu/store-flag :c 2r0)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
+
+(doseq [from-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (symbol (format "ana-%s" (name from-sym)))
+          (make-ana-function from-sym)))
+
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"
   [computer]
@@ -743,8 +767,8 @@
    0x93 {:fn sub-e   :bytes 1 :cycles 1}
    0x94 {:fn sub-h   :bytes 1 :cycles 1}
    0x95 {:fn sub-l   :bytes 1 :cycles 1}
-   0x96 {:fn sub-m  :bytes 1 :cycles 1}
-   0x97 {:fn sbb-a   :bytes 1 :cycles 1}
+   0x96 {:fn sub-m   :bytes 1 :cycles 1}
+   0x97 {:fn sub-a   :bytes 1 :cycles 1}
    0x98 {:fn sbb-b   :bytes 1 :cycles 1}
    0x99 {:fn sbb-c   :bytes 1 :cycles 1}
    0x9a {:fn sbb-d   :bytes 1 :cycles 1}
@@ -753,6 +777,14 @@
    0x9d {:fn sbb-l   :bytes 1 :cycles 1}
    0x9e {:fn sbb-m   :bytes 1 :cycles 1}
    0x9f {:fn sbb-a   :bytes 1 :cycles 1}
+   0xa0 {:fn ana-b   :bytes 1 :cycles 1}
+   0xa1 {:fn ana-c   :bytes 1 :cycles 1}
+   0xa2 {:fn ana-d   :bytes 1 :cycles 1}
+   0xa3 {:fn ana-e   :bytes 1 :cycles 1}
+   0xa4 {:fn ana-h   :bytes 1 :cycles 1}
+   0xa5 {:fn ana-l   :bytes 1 :cycles 1}
+   ; 0xa6 {:fn sub-m   :bytes 1 :cycles 1}
+   0xa7 {:fn ana-a   :bytes 1 :cycles 1}
 
    0xcb {:fn nop    :bytes 1 :cycles 1}
 

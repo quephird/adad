@@ -22,5 +22,13 @@
   (testing "carry function returns the correct values"
     (is (= 0 (subject/carry 2r00000000 2r00000000)))
     (is (= 0 (subject/carry 2r11111111 2r00000000)))
-    (is (= 1 (subject/carry 2r11000000 2r01000000)))
-))
+    (is (= 1 (subject/carry 2r11000000 2r01000000)))))
+
+(deftest testing-auxiliary-carry
+  (testing "auxiliary-carry function returns the correct values"
+    (is (= 0 (subject/auxiliary-carry 2r00001111 2r00000000)))
+    (is (= 0 (subject/auxiliary-carry 2r00000000 2r00001111)))
+    (is (= 1 (subject/auxiliary-carry 2r00001111 2r00000001)))
+    (is (= 0 (subject/auxiliary-carry 2r11110000 2r00010000)))
+    (is (= 0 (subject/auxiliary-carry 2r00001111 2r00000000 2r0)))
+    (is (= 1 (subject/auxiliary-carry 2r00001111 2r00000000 2r1)))))

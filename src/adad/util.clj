@@ -41,8 +41,7 @@
   ([b1 b2]
   (auxiliary-carry b1 b2 0x0))
   ([b1 b2 c]
-  (if (> (| (& b1 b2)
-            (& c (+ b1 b2))) 0) 0x1 0x0)))
+  (>> (+ (& b1 0x0f) (& b2 0x0f) c) 4)))
 
 (defn carry
   "Checks where there will be a carry from the last bit during

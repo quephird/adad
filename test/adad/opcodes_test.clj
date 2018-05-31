@@ -61,20 +61,20 @@
           updated-computer (subject/inr-b initial-computer)]
       (is (= 0x43 (cpu/read-register updated-computer :b)))))
 
-  (testing "half carry flag is set"
+  (testing "auxiliary carry flag is set"
     (let [b   0x4f
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b))
           updated-computer (subject/inr-b initial-computer)]
-      (is (= 0x01 (cpu/read-flag updated-computer :hc)))))
+      (is (= 2r1 (cpu/read-flag updated-computer :ac)))))
 
-  (testing "half carry flag is unset"
+  (testing "auxiliary carry flag is unset"
     (let [b   0x10
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b)
-                             (cpu/store-flag :hc 0x01))
+                             (cpu/store-flag :ac 0x01))
           updated-computer (subject/inr-b initial-computer)]
-      (is (= 0x00 (cpu/read-flag updated-computer :hc)))))
+      (is (= 2r0 (cpu/read-flag updated-computer :ac)))))
 
   (testing "parity flag is set"
     (let [b   2r00000010
@@ -142,14 +142,13 @@
           updated-computer (subject/dcr-b initial-computer)]
       (is (= 0x42 (cpu/read-register updated-computer :b)))))
 
-  ; TODO: Figure out if the HC flag is ever set in a DCR opcode
   (testing "half carry flag is unset"
     (let [b   0x10
           initial-computer (-> cpu/fresh-computer
                              (cpu/store-register :b b)
-                             (cpu/store-flag :hc 0x01))
+                             (cpu/store-flag :ac 0x01))
           updated-computer (subject/dcr-b initial-computer)]
-      (is (= 0x00 (cpu/read-flag updated-computer :hc)))))
+      (is (= 0x00 (cpu/read-flag updated-computer :ac)))))
 
   (testing "parity flag is set"
     (let [b   2r11111101

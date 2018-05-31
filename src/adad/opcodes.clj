@@ -10,76 +10,85 @@
 
 (defn nop
   "No operation"
+  {:flags-affected [] :cycles 1 :bytes 1}
   [computer]
   computer)
 
-(defn- lxi
-  "Loads the passed in register pair with two bytes:
+(defn- make-lxi-function
+  "Makes a function that loads the passed in register pair with two bytes:
    b2 gets assigned to the first register, b1 to the second one;
    no flags affected"
-  [computer register b1 b2]
-  (cpu/store-register computer register (+ (<< b2 8) b1)))
+  [register-pair]
+  (fn [computer b1 b2]
+    (cpu/store-register computer register-pair (+ (<< b2 8) b1))))
 
-(defn lxi-b [computer b1 b2] (lxi computer :bc b1 b2))
-(defn lxi-d [computer b1 b2] (lxi computer :de b1 b2))
-(defn lxi-h [computer b1 b2] (lxi computer :hl b1 b2))
-(defn lxi-sp [computer b1 b2] (lxi computer :sp b1 b2))
+(doseq [[fn-name register-pair] [[:b :bc] [:d :de] [:h :hl] [:sp :sp]]]
+  (intern *ns*
+          (with-meta (symbol (format "lxi-%s" (name fn-name)))
+                     {:flags-affected [] :cycles 3 :bytes 3})
+          (make-lxi-function register-pair)))
 
-(defn- stax
-  "Stores the contents of the accumulator A
+(defn- make-stax-function
+  "Makes a function that stores the contents of the accumulator A
    at the memory location in the register pair passed in;
    no flags affected"
-  [computer register]
-  (let [a       (cpu/read-register computer :a)
-        address (cpu/read-register computer register)]
-    (mem/store-memory computer address a)))
+  [register-pair]
+  (fn [computer]
+    (let [a       (cpu/read-register computer :a)
+          address (cpu/read-register computer register-pair)]
+      (mem/store-memory computer address a))))
 
-(defn stax-b [computer] (stax computer :bc))
-(defn stax-d [computer] (stax computer :de))
+(doseq [[fn-name register-pair] [[:b :bc] [:d :de]]]
+  (intern *ns*
+          (with-meta (symbol (format "stax-%s" (name fn-name)))
+                     {:flags-affected [] :cycles 1 :bytes 2})
+          (make-stax-function register-pair)))
 
-(defn- inx
-  "Increments the value in the register pair passed in;
+(defn- make-inx-function
+  "Makes a function that increments the value in the register pair passed in;
    no flags affected"
-  [computer register]
-  (->> register
-    (cpu/read-register computer)
-    inc
-    (cpu/store-register computer register)))
+  [register-pair]
+  (fn [computer]
+    (->> register-pair
+      (cpu/read-register computer)
+      inc
+      (cpu/store-register computer register-pair))))
 
-(defn inx-b [computer] (inx computer :bc))
-(defn inx-d [computer] (inx computer :de))
-(defn inx-h [computer] (inx computer :hl))
-(defn inx-sp [computer] (inx computer :sp))
+(doseq [[fn-name register-pair] [[:b :bc] [:d :de] [:h :hl] [:sp :sp]]]
+  (intern *ns*
+          (with-meta (symbol (format "inx-%s" (name fn-name)))
+                     {:flags-affected [] :cycles 1 :bytes 1})
+          (make-inx-function register-pair)))
 
-(defn- inr
-  "Helper function to increment the value in the register passed;
+(defn- make-inr-function
+  "Makes a function that increments the value in the register passed;
   flags affected: zero, sign, parity, auxiliary carry"
-  [computer register]
-  (let [reg-val     (cpu/read-register computer register)
-        new-reg-val (& 0xff (inc reg-val))
-        new-p       (parity new-reg-val)
-        new-s       (sign new-reg-val)
-        new-z       (zero new-reg-val)
-        new-hc      (if (zero? (& new-reg-val 0x0f)) 0x01 0x00)]
-    (-> computer
-      (cpu/store-flag :hc new-hc)
-      (cpu/store-flag :p new-p)
-      (cpu/store-flag :s new-s)
-      (cpu/store-flag :z new-z)
-      (cpu/store-register register new-reg-val))))
+  [register]
+  (fn [computer]
+    (let [reg-val     (cpu/read-register computer register)
+          new-reg-val (& 0xff (inc reg-val))
+          new-p       (parity new-reg-val)
+          new-s       (sign new-reg-val)
+          new-z       (zero new-reg-val)
+          new-ac      (auxiliary-carry reg-val 0x01)]
+      (-> computer
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)
+        (cpu/store-register register new-reg-val)))))
 
-(defn inr-a [computer] (inr computer :a))
-(defn inr-b [computer] (inr computer :b))
-(defn inr-c [computer] (inr computer :c))
-(defn inr-d [computer] (inr computer :d))
-(defn inr-e [computer] (inr computer :e))
-(defn inr-h [computer] (inr computer :h))
-(defn inr-l [computer] (inr computer :l))
+(doseq [register [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (with-meta (symbol (format "inr-%s" (name register)))
+                     {:flags-affected [:ac :p :s :z] :cycles 1 :bytes 1})
+          (make-inr-function register)))
 
 (defn inr-m
   "Increments the value contained at the memory location pointed
    to by the HL register pair; flags affected: zero, sign, parity,
    auxiliary carry"
+   {:flags-affected [:ac :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [h           (cpu/read-register computer :h)
         l           (cpu/read-register computer :l)
@@ -97,35 +106,35 @@
       (cpu/store-flag :z new-z)
       (mem/store-memory address new-mem-val))))
 
-(defn- dcr
-  "Helper function to decrement the value in the register passed;
+(defn- make-dcr-function
+  "Makes a function to decrement the value in the register passed;
   flags affected: zero, sign, parity, auxiliary carry"
-  [computer register]
-  (let [reg-val     (cpu/read-register computer register)
-        new-reg-val (& 0xff (dec reg-val))
-        new-p       (parity new-reg-val)
-        new-s       (sign new-reg-val)
-        new-z       (zero new-reg-val)
-        new-hc      (if (zero? (& new-reg-val 0x0f)) 0x01 0x00)] ; Not sure of this
-    (-> computer
-      (cpu/store-flag :hc new-hc)
-      (cpu/store-flag :p new-p)
-      (cpu/store-flag :s new-s)
-      (cpu/store-flag :z new-z)
-      (cpu/store-register register new-reg-val))))
+  [register]
+  (fn [computer]
+    (let [reg-val     (cpu/read-register computer register)
+          new-reg-val (& 0xff (dec reg-val))
+          new-p       (parity new-reg-val)
+          new-s       (sign new-reg-val)
+          new-z       (zero new-reg-val)
+          new-ac      (auxiliary-carry reg-val 0xFF)]
+      (-> computer
+        (cpu/store-flag :ac new-ac)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)
+        (cpu/store-register register new-reg-val)))))
 
-(defn dcr-a [computer] (dcr computer :a))
-(defn dcr-b [computer] (dcr computer :b))
-(defn dcr-c [computer] (dcr computer :c))
-(defn dcr-d [computer] (dcr computer :d))
-(defn dcr-e [computer] (dcr computer :e))
-(defn dcr-h [computer] (dcr computer :h))
-(defn dcr-l [computer] (dcr computer :l))
+(doseq [to-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (with-meta (symbol (format "dcr-%s" (name to-sym)))
+                     {:flags-affected [:ac :p :s :z] :cycles 1 :bytes 1})
+          (make-dcr-function to-sym)))
 
 (defn dcr-m
   "Decrements the value contained at the memory location pointed
    to by the HL register pair; flags affected: zero, sign, parity,
    auxiliary carry"
+   {:flags-affected [:ac :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [h           (cpu/read-register computer :h)
         l           (cpu/read-register computer :l)
@@ -143,24 +152,23 @@
       (cpu/store-flag :z new-z)
       (mem/store-memory address new-mem-val))))
 
-(defn- mvi
+(defn- make-mvi-function
   "Helper function to load the specified register
    with the byte value passed in; no flags affected"
-  [computer register new-val]
-  (cpu/store-register computer register new-val))
+  [register]
+  (fn [computer new-val]
+    (cpu/store-register computer register new-val)))
 
-(defn mvi-a [computer new-val] (mvi computer :a new-val))
-(defn mvi-b [computer new-val] (mvi computer :b new-val))
-(defn mvi-c [computer new-val] (mvi computer :c new-val))
-(defn mvi-d [computer new-val] (mvi computer :d new-val))
-(defn mvi-e [computer new-val] (mvi computer :e new-val))
-(defn mvi-h [computer new-val] (mvi computer :h new-val))
-(defn mvi-l [computer new-val] (mvi computer :l new-val))
+(doseq [to-sym [:a :b :c :d :e :h :l]]
+  (intern *ns*
+          (with-meta (symbol (format "mvi-%s" (name to-sym)))
+                     {:flags-affected [] :cycles 1 :bytes 1})
+          (make-mvi-function to-sym)))
 
 (defn mvi-m
-  "Decrements the value contained at the memory location pointed
-   to by the HL register pair; flags affected: zero, sign, parity,
-   auxiliary carry"
+  "Loads the smemory location pointed to by the HL register pair
+   with the byte value passed in; no flags affected"
+   {:flags-affected [] :cycles 1 :bytes 1}
   [computer b1]
   (let [h           (cpu/read-register computer :h)
         l           (cpu/read-register computer :l)
@@ -171,6 +179,7 @@
 (defn rlc
   "Rotates the bits in the accumulator A to the left;
    moves the old 7th bit into the carry flag and the 0th bit of A"
+   {:flags-affected [:c] :cycles 1 :bytes 1}
   [computer]
   (let [a       (cpu/read-register computer :a)
         bit-7   (-> a (& 2r10000000) (>> 7))
@@ -179,22 +188,24 @@
       (cpu/store-register :a new-a)
       (cpu/store-flag :c bit-7))))
 
-(defn- dad
+(defn- make-dad-function
   "Adds the value of the register pair passed in
    to that of the HL register pair; carry flag affected."
-  [computer register]
-  (let [reg-val (cpu/read-register computer register)
-        hl      (cpu/read-register computer :hl)
-        new-hl  (+ hl reg-val)
-        new-c   (-> new-hl (& 0x10000) (>> 16))]
-    (-> computer
-      (cpu/store-register :hl new-hl)
-      (cpu/store-flag :c new-c))))
+  [reg-pair]
+  (fn [computer]
+    (let [reg-val (cpu/read-register computer reg-pair)
+          hl      (cpu/read-register computer :hl)
+          new-hl  (+ hl reg-val)
+          new-c   (-> new-hl (& 0x10000) (>> 16))]
+      (-> computer
+        (cpu/store-register :hl new-hl)
+        (cpu/store-flag :c new-c)))))
 
-(defn dad-b [computer] (dad computer :bc))
-(defn dad-d [computer] (dad computer :de))
-(defn dad-h [computer] (dad computer :hl))
-(defn dad-sp [computer] (dad computer :sp))
+(doseq [[mnemonic reg-pair] [["b" :bc] ["d" :de] ["h" :hl] ["sp" :sp]]]
+  (intern *ns*
+          (with-meta (symbol (format "dad-%s" mnemonic))
+                     {:flags-affected [:c] :cycles 3 :bytes 1})
+          (make-dad-function reg-pair)))
 
 (defn- ldax
   "Stores the contents of the memory location pointed to
@@ -601,8 +612,10 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "ana-%s" (name from-sym)))
+          (with-meta (symbol (format "ana-%s" (name from-sym)))
+                     {:flags-set [:cf :pf :sf :zf] :cycles 1 :bytes 1})
           (make-ana-function from-sym)))
+
 
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"

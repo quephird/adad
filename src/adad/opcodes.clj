@@ -207,35 +207,42 @@
                      {:flags-affected [:c] :cycles 3 :bytes 1})
           (make-dad-function reg-pair)))
 
-(defn- ldax
+(defn- make-ldax-function
   "Stores the contents of the memory location pointed to
    in the passed in register pair passed into the accumulator A"
-  [computer register]
-  (let [a       (cpu/read-register computer :a)
-        address (cpu/read-register computer register)
-        new-a   (mem/read-memory computer address)]
-    (cpu/store-register computer :a new-a)))
+  [reg-pair]
+  (fn [computer]
+    (let [a       (cpu/read-register computer :a)
+          address (cpu/read-register computer reg-pair)
+          new-a   (mem/read-memory computer address)]
+      (cpu/store-register computer :a new-a))))
 
-(defn ldax-b [computer] (ldax computer :bc))
-(defn ldax-d [computer] (ldax computer :de))
+(doseq [[mnemonic reg-pair] [["b" :bc] ["d" :de]]]
+  (intern *ns*
+          (with-meta (symbol (format "ldax-%s" mnemonic))
+                     {:flags-affected [:c] :cycles 2 :bytes 1})
+          (make-ldax-function reg-pair)))
 
-(defn- dcx
+(defn- make-dcx-function
   "Decrements the contents of the register pair passed in;
    no carry flags affected"
-  [computer register]
-  (->> register
-    (cpu/read-register computer)
-    dec
-    (cpu/store-register computer register)))
+  [reg-pair]
+  (fn [computer]
+    (->> reg-pair
+      (cpu/read-register computer)
+      dec
+      (cpu/store-register computer reg-pair))))
 
-(defn dcx-b [computer] (dcx computer :bc))
-(defn dcx-d [computer] (dcx computer :de))
-(defn dcx-h [computer] (dcx computer :hl))
-(defn dcx-sp [computer] (dcx computer :sp))
+(doseq [[mnemonic reg-pair] [["b" :bc] ["d" :de] ["h" :hl] ["sp" :sp]]]
+  (intern *ns*
+          (with-meta (symbol (format "dcx-%s" mnemonic))
+                     {:flags-affected [] :cycles 1 :bytes 1})
+          (make-dcx-function reg-pair)))
 
 (defn rrc
   "Rotates the bits in the accumulator A to the right;
    moves the old 0th bit into the carry flag and the 7th bit of A"
+  {:flags-affected [:c] :cycles 1 :bytes 1}
   [computer]
   (let [a       (cpu/read-register computer :a)
         bit-0   (& 2r00000001 a)
@@ -247,6 +254,7 @@
 (defn ral
   "Rotates the contents of the accumulator A together with
    the carry flag to the left"
+  {:flags-affected [:c] :cycles 1 :bytes 1}
   [computer]
   (let [a       (cpu/read-register computer :a)
         bit-7   (-> a (& 2r10000000) (>> 7))
@@ -259,6 +267,7 @@
 (defn rar
   "Rotates the contents of the accumulator A together with
    the carry flag to the right"
+  {:flags-affected [:c] :cycles 1 :bytes 1}
   [computer]
   (let [a       (cpu/read-register computer :a)
         bit-0   (& a 2r00000001)
@@ -273,6 +282,7 @@
    represented by the two bytes passed in, and the value in the
    L register into the very next memory location; no carry flags
    affected"
+  {:flags-affected [] :cycles 5 :bytes 3}
   [computer b1 b2]
   (let [address (+ (<< b1 8) b2)
         h       (cpu/read-register computer :h)
@@ -284,6 +294,7 @@
 (defn lhld
   "Loads the values in the memory address passed in, and the next one,
    into the H and L registers; no carry flags affected"
+  {:flags-affected [] :cycles 5 :bytes 3}
   [computer b1 b2]
   (let [address (+ (<< b2 8) b1)
         h       (mem/read-memory computer (inc address))
@@ -295,6 +306,7 @@
 (defn cma
   "Sets the value of the accumulator to the complement its current value;
    no flags affected"
+  {:flags-affected [] :cycles 1 :bytes 1}
   [computer]
   (as-> computer $
     (cpu/read-register $ :a)
@@ -305,6 +317,7 @@
   "Stores the contents of the memory location represented
    by the two bytes passed into the accumulator A;
    no flags affected"
+  {:flags-affected [] :cycles 4 :bytes 3}
   [computer b1 b2]
   (let [address (+ (<< b2 8) b1)
         a       (mem/read-memory computer address)]
@@ -314,6 +327,7 @@
   "Stores the contents of the accumulator A into the
    memory location represented by the two bytes passed in;
    no flags affected"
+  {:flags-affected [] :cycles 3 :bytes 3}
   [computer b1 b2]
   (let [address (+ (<< b2 8) b1)
         a       (cpu/read-register computer :a)]
@@ -321,17 +335,19 @@
 
 (defn stc
   "Sets the carry bit to one unconditionally"
+  {:flags-affected [] :cycles 1 :bytes 1}
   [computer]
   (cpu/store-flag computer :c 2r1))
 
 (defn cmc
   "Updates the carry flag with the complement of its current value"
+  {:flags-affected [] :cycles 1 :bytes 1}
   [computer]
   (let [c     (cpu/read-flag computer :c)
         new-c (& (! c) 0x01)]
     (cpu/store-flag computer :c new-c)))
 
-(defn make-mov-function
+(defn- make-mov-function
   "Makes a function that moves the value from the second register
    passed in to the first register passed in; no flags are affected
    in any of the resultant functions"
@@ -343,10 +359,11 @@
 (doseq [from-sym [:a :b :c :d :e :h :l]
         to-sym   [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "mov-%s-%s" (name to-sym) (name from-sym)))
+          (with-meta (symbol (format "mov-%s-%s" (name to-sym) (name from-sym)))
+                     {:flags-affected [] :cycles 1 :bytes 1})
           (make-mov-function to-sym from-sym)))
 
-(defn make-mov-from-m-function
+(defn- make-mov-from-m-function
   "Makes a function that moves the value from the memory location
    pointed to in the HL register pair to the first register passed in;
    no flags are affected in any of the resultant functions"
@@ -359,10 +376,11 @@
 
 (doseq [to-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "mov-%s-m" (name to-sym)))
+          (with-meta (symbol (format "mov-%s-m" (name to-sym)))
+                     {:flags-affected [] :cycles 1 :bytes 1})
           (make-mov-from-m-function to-sym)))
 
-(defn make-mov-to-m-function
+(defn- make-mov-to-m-function
   "Makes a function that moves the value from a register
    to the memory location pointed to in the HL register pair;
    no flags are affected in any of the resultant functions"
@@ -375,10 +393,11 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "mov-m-%s" (name from-sym)))
+          (with-meta (symbol (format "mov-m-%s" (name from-sym)))
+                     {:flags-affected [] :cycles 1 :bytes 1})
           (make-mov-to-m-function from-sym)))
 
-(defn make-add-function
+(defn- make-add-function
   "Makes a function that adds the value from the register
    passed in to the A register; flags affected:
    zero, sign, parity, carry, auxiliary carry"
@@ -403,13 +422,15 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "add-%s" (name from-sym)))
+          (with-meta (symbol (format "add-%s" (name from-sym)))
+                     {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1})
           (make-add-function from-sym)))
 
 (defn add-m
   "Adds the value contained in the memory location, pointed
    to by the HL register pair, to the A register; flags affected:
    zero, sign, parity, carry, auxiliary carry"
+  {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [from-addr-val (mem/read-memory-hl computer)
         old-a         (cpu/read-register computer :a)
@@ -454,13 +475,15 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "adc-%s" (name from-sym)))
+          (with-meta (symbol (format "adc-%s" (name from-sym)))
+                     {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1})
           (make-adc-function from-sym)))
 
 (defn adc-m
   "Adds the value contained in the memory location, pointed
    to by the HL register pair, and the carry flag to the A register;
    flags affected: zero, sign, parity, carry, auxiliary carry"
+  {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [from-addr-val (mem/read-memory-hl computer)
         old-a         (cpu/read-register computer :a)

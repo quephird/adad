@@ -3,11 +3,6 @@
             [adad.memory :as mem]
             [adad.util :refer [<< >> & ! auxiliary-carry carry parity sign twos-complement zero]]))
 
-;; TODO: Should add metadata to all functions including:
-;;        * flags set {:flags-set :ac :c :p :s :z}
-;;        * number of cycles {:cycles 3}
-;;        * number of bytes to move the program counter {:bytes 1}
-
 (defn nop
   "No operation"
   {:flags-affected [] :cycles 1 :bytes 1}
@@ -98,9 +93,9 @@
         new-p       (parity new-mem-val)
         new-s       (sign new-mem-val)
         new-z       (zero new-mem-val)
-        new-hc      (if (zero? (& new-mem-val 0x0f)) 0x01 0x00)]
+        new-ac      (auxiliary-carry new-mem-val 0x01)]
     (-> computer
-      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :ac new-ac)
       (cpu/store-flag :p new-p)
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z)
@@ -144,9 +139,9 @@
         new-p       (parity new-mem-val)
         new-s       (sign new-mem-val)
         new-z       (zero new-mem-val)
-        new-hc      (if (zero? (& new-mem-val 0x0f)) 0x01 0x00)]
+        new-ac      (auxiliary-carry new-mem-val 0xff)]
     (-> computer
-      (cpu/store-flag :hc new-hc)
+      (cpu/store-flag :ac new-ac)
       (cpu/store-flag :p new-p)
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z)
@@ -449,7 +444,7 @@
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z))))
 
-(defn make-adc-function
+(defn- make-adc-function
   "Makes a function that adds the value from the register
    passed in, as well as the carry flag, to the A register;
    flags affected: zero, sign, parity, carry, auxiliary carry"
@@ -508,7 +503,7 @@
           (symbol (format "adc-%s" (name from-sym)))
           (make-adc-function from-sym)))
 
-(defn make-sub-function
+(defn- make-sub-function
   "Makes a function that subtracts the value from the register
    passed in from the A register; flags affected:
    zero, sign, parity, carry, auxiliary carry"
@@ -534,13 +529,15 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "sub-%s" (name from-sym)))
+          (with-meta (symbol (format "sub-%s" (name from-sym)))
+                     {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1})
           (make-sub-function from-sym)))
 
 (defn sub-m
   "Subtract the value contained in the memory location, pointed
    to by the HL register pair, from the A register;
    flags affected: zero, sign, parity, carry, auxiliary carry"
+  {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [addr-val     (mem/read-memory-hl computer)
         neg-addr-val (twos-complement addr-val)
@@ -560,7 +557,7 @@
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z))))
 
-(defn make-sbb-function
+(defn- make-sbb-function
   "Makes a function that subtracts the value from the register
    passed in, as well as the carry bit, from the A register;
    flags affected: zero, sign, parity, carry, auxiliary carry"
@@ -587,13 +584,15 @@
 
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
-          (symbol (format "sbb-%s" (name from-sym)))
+          (with-meta (symbol (format "sbb-%s" (name from-sym)))
+                     {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1})
           (make-sbb-function from-sym)))
 
 (defn sbb-m
   "Subtract the value contained in the memory location, pointed
    to by the HL register pair, and the carry bit from the A register;
    flags affected: zero, sign, parity, carry, auxiliary carry"
+  {:flags-affected [:ac :c :p :s :z] :cycles 1 :bytes 1}
   [computer]
   (let [addr-val     (mem/read-memory-hl computer)
         old-c        (cpu/read-flag computer :c)
@@ -614,7 +613,7 @@
       (cpu/store-flag :s new-s)
       (cpu/store-flag :z new-z))))
 
-(defn make-ana-function
+(defn- make-ana-function
   "Makes a function that ANDs the value from the register
    passed in with the value in the A register. The carry bit
    is _always_ reset; flags affected: zero, sign, parity, carry"
@@ -636,199 +635,67 @@
 (doseq [from-sym [:a :b :c :d :e :h :l]]
   (intern *ns*
           (with-meta (symbol (format "ana-%s" (name from-sym)))
-                     {:flags-set [:cf :pf :sf :zf] :cycles 1 :bytes 1})
+                     {:flags-set [:c :p :s :z] :cycles 1 :bytes 1})
           (make-ana-function from-sym)))
 
+(defn ana-m
+  "ANDs the value contained in the memory location, pointed
+   to by the HL register pair, with the value in the A register.
+   The carry bit is _always_ reset; flags affected: zero, sign,
+   parity, carry"
+  {:flags-set [:c :p :s :z] :cycles 1 :bytes 1}
+  [from-sym]
+  (fn [computer]
+    (let [addr-val     (mem/read-memory-hl computer)
+          old-a        (cpu/read-register computer :a)
+          new-val      (& addr-val old-a)
+          new-p        (parity new-val)
+          new-s        (sign new-val)
+          new-z        (zero new-val)]
+      (-> computer
+        (cpu/store-register :a new-val)
+        (cpu/store-flag :c 2r0)
+        (cpu/store-flag :p new-p)
+        (cpu/store-flag :s new-s)
+        (cpu/store-flag :z new-z)))))
 
 (defn hlt
   "Does nothing, and causes the program counter to remain in the same state"
+  {:flags-affected [] :cycles 1 :bytes 0}
   [computer]
   computer)
 
-; Instead of simply making these a vector of hashes
-; that can be looked up by a numeric index, I made it
-; a nested hash so that 1) as I'm implementing opcodes
-; I can have gaps in this structure, and 2) the relationship
-; between the functions and the actual 8080 opcodes is far
-; more explicit here.
 (def opcodes
-  {
-   0x00 {:fn nop    :bytes 1 :cycles 1}
-   0x01 {:fn lxi-b  :bytes 3 :cycles 3}
-   0x02 {:fn stax-b :bytes 1 :cycles 2}
-   0x03 {:fn inx-b  :bytes 1 :cycles 1}
-   0x04 {:fn inr-b  :bytes 1 :cycles 1}
-   0x05 {:fn dcr-b  :bytes 1 :cycles 1}
-   0x06 {:fn mvi-b  :bytes 2 :cycles 2}
-   0x07 {:fn rlc    :bytes 1 :cycles 1}
-   0x08 {:fn nop    :bytes 1 :cycles 1}
-   0x09 {:fn dad-b  :bytes 1 :cycles 3}
-   0x0a {:fn ldax-b :bytes 1 :cycles 2}
-   0x0b {:fn dcx-b  :bytes 1 :cycles 1}
-   0x0c {:fn inr-c  :bytes 1 :cycles 1}
-   0x0d {:fn dcr-c  :bytes 1 :cycles 1}
-   0x0e {:fn mvi-c  :bytes 2 :cycles 2}
-   0x0f {:fn rrc    :bytes 1 :cycles 1}
-   0x10 {:fn nop    :bytes 1 :cycles 1}
-   0x11 {:fn lxi-d  :bytes 3 :cycles 3}
-   0x12 {:fn stax-d :bytes 1 :cycles 2}
-   0x13 {:fn inx-d  :bytes 1 :cycles 1}
-   0x14 {:fn inr-d  :bytes 1 :cycles 1}
-   0x15 {:fn dcr-d  :bytes 1 :cycles 1}
-   0x16 {:fn mvi-d  :bytes 2 :cycles 2}
-   0x17 {:fn ral    :bytes 1 :cycles 1}
-   0x18 {:fn nop    :bytes 1 :cycles 1}
-   0x19 {:fn dad-d  :bytes 1 :cycles 3}
-   0x1a {:fn ldax-d :bytes 1 :cycles 2}
-   0x1b {:fn dcx-d  :bytes 1 :cycles 1}
-   0x1c {:fn inr-e  :bytes 1 :cycles 1}
-   0x1d {:fn dcr-e  :bytes 1 :cycles 1}
-   0x1e {:fn mvi-e  :bytes 2 :cycles 2}
-   0x1f {:fn rar    :bytes 1 :cycles 1}
-   0x20 {:fn nop    :bytes 1 :cycles 1}
-   0x21 {:fn lxi-h  :bytes 3 :cycles 3}
-   0x22 {:fn shld   :bytes 3 :cycles 5}
-   0x23 {:fn inx-h  :bytes 1 :cycles 1}
-   0x24 {:fn inr-h  :bytes 1 :cycles 1}
-   0x25 {:fn dcr-h  :bytes 1 :cycles 1}
-   0x26 {:fn mvi-h  :bytes 2 :cycles 2}
-   0x27 {:fn nop    :bytes 1 :cycles 1}
-   0x28 {:fn nop    :bytes 1 :cycles 1}
-   0x29 {:fn dad-h  :bytes 1 :cycles 3}
-   0x2a {:fn lhld   :bytes 3 :cycles 5}
-   0x2b {:fn dcx-h  :bytes 1 :cycles 1}
-   0x2c {:fn inr-l  :bytes 1 :cycles 1}
-   0x2d {:fn dcr-l  :bytes 1 :cycles 1}
-   0x2e {:fn mvi-l  :bytes 2 :cycles 2}
-   0x2f {:fn cma    :bytes 1 :cycles 1}
-   0x30 {:fn nop    :bytes 1 :cycles 1}
-   0x31 {:fn lxi-sp :bytes 3 :cycles 3}
-   0x32 {:fn sta    :bytes 3 :cycles 3}
-   0x33 {:fn inx-sp :bytes 1 :cycles 1}
-   0x34 {:fn inr-m  :bytes 1 :cycles 1}
-   0x35 {:fn dcr-m  :bytes 1 :cycles 1}
-   0x36 {:fn mvi-m  :bytes 2 :cycles 2}
-   0x37 {:fn stc    :bytes 1 :cycles 1}
-   0x38 {:fn nop    :bytes 1 :cycles 1}
-   0x39 {:fn dad-sp :bytes 1 :cycles 3}
-   0x3a {:fn lda    :bytes 3 :cycles 4}
-   0x3b {:fn dcx-sp :bytes 1 :cycles 1}
-   0x3c {:fn inr-a  :bytes 1 :cycles 1}
-   0x3d {:fn dcr-a  :bytes 1 :cycles 1}
-   0x3e {:fn mvi-a  :bytes 2 :cycles 2}
-   0x3f {:fn cmc    :bytes 1 :cycles 1}
-   0x40 {:fn mov-b-b :bytes 1 :cycles 1}
-   0x41 {:fn mov-b-c :bytes 1 :cycles 1}
-   0x42 {:fn mov-b-d :bytes 1 :cycles 1}
-   0x43 {:fn mov-b-e :bytes 1 :cycles 1}
-   0x44 {:fn mov-b-h :bytes 1 :cycles 1}
-   0x45 {:fn mov-b-l :bytes 1 :cycles 1}
-   0x46 {:fn mov-b-m :bytes 1 :cycles 1}
-   0x47 {:fn mov-b-a :bytes 1 :cycles 1}
-   0x48 {:fn mov-c-b :bytes 1 :cycles 1}
-   0x49 {:fn mov-c-c :bytes 1 :cycles 1}
-   0x4a {:fn mov-c-d :bytes 1 :cycles 1}
-   0x4b {:fn mov-c-e :bytes 1 :cycles 1}
-   0x4c {:fn mov-c-h :bytes 1 :cycles 1}
-   0x4d {:fn mov-c-l :bytes 1 :cycles 1}
-   0x4e {:fn mov-c-m :bytes 1 :cycles 1}
-   0x4f {:fn mov-c-a :bytes 1 :cycles 1}
-   0x50 {:fn mov-d-b :bytes 1 :cycles 1}
-   0x51 {:fn mov-d-c :bytes 1 :cycles 1}
-   0x52 {:fn mov-d-d :bytes 1 :cycles 1}
-   0x53 {:fn mov-d-e :bytes 1 :cycles 1}
-   0x54 {:fn mov-d-h :bytes 1 :cycles 1}
-   0x55 {:fn mov-d-l :bytes 1 :cycles 1}
-   0x56 {:fn mov-d-m :bytes 1 :cycles 1}
-   0x57 {:fn mov-d-a :bytes 1 :cycles 1}
-   0x58 {:fn mov-e-b :bytes 1 :cycles 1}
-   0x59 {:fn mov-e-c :bytes 1 :cycles 1}
-   0x5a {:fn mov-e-d :bytes 1 :cycles 1}
-   0x5b {:fn mov-e-e :bytes 1 :cycles 1}
-   0x5c {:fn mov-e-h :bytes 1 :cycles 1}
-   0x5d {:fn mov-e-l :bytes 1 :cycles 1}
-   0x5e {:fn mov-e-m :bytes 1 :cycles 1}
-   0x5f {:fn mov-e-a :bytes 1 :cycles 1}
-   0x60 {:fn mov-h-b :bytes 1 :cycles 1}
-   0x61 {:fn mov-h-c :bytes 1 :cycles 1}
-   0x62 {:fn mov-h-d :bytes 1 :cycles 1}
-   0x63 {:fn mov-h-e :bytes 1 :cycles 1}
-   0x64 {:fn mov-h-h :bytes 1 :cycles 1}
-   0x65 {:fn mov-h-l :bytes 1 :cycles 1}
-   0x66 {:fn mov-h-m :bytes 1 :cycles 1}
-   0x67 {:fn mov-h-a :bytes 1 :cycles 1}
-   0x68 {:fn mov-l-b :bytes 1 :cycles 1}
-   0x69 {:fn mov-l-c :bytes 1 :cycles 1}
-   0x6a {:fn mov-l-d :bytes 1 :cycles 1}
-   0x6b {:fn mov-l-e :bytes 1 :cycles 1}
-   0x6c {:fn mov-l-h :bytes 1 :cycles 1}
-   0x6d {:fn mov-l-l :bytes 1 :cycles 1}
-   0x6e {:fn mov-l-m :bytes 1 :cycles 1}
-   0x6f {:fn mov-l-a :bytes 1 :cycles 1}
-   0x70 {:fn mov-m-b :bytes 1 :cycles 1}
-   0x71 {:fn mov-m-c :bytes 1 :cycles 1}
-   0x72 {:fn mov-m-d :bytes 1 :cycles 1}
-   0x73 {:fn mov-m-e :bytes 1 :cycles 1}
-   0x74 {:fn mov-m-h :bytes 1 :cycles 1}
-   0x75 {:fn mov-m-l :bytes 1 :cycles 1}
-   0x76 {:fn hlt     :bytes 0 :cycles 1}
-   0x77 {:fn mov-m-a :bytes 1 :cycles 1}
-   0x78 {:fn mov-a-b :bytes 1 :cycles 1}
-   0x79 {:fn mov-a-c :bytes 1 :cycles 1}
-   0x7a {:fn mov-a-d :bytes 1 :cycles 1}
-   0x7b {:fn mov-a-e :bytes 1 :cycles 1}
-   0x7c {:fn mov-a-h :bytes 1 :cycles 1}
-   0x7d {:fn mov-a-l :bytes 1 :cycles 1}
-   0x7e {:fn mov-a-m :bytes 1 :cycles 1}
-   0x7f {:fn mov-a-a :bytes 1 :cycles 1}
-   0x80 {:fn add-b   :bytes 1 :cycles 1}
-   0x81 {:fn add-c   :bytes 1 :cycles 1}
-   0x82 {:fn add-d   :bytes 1 :cycles 1}
-   0x83 {:fn add-e   :bytes 1 :cycles 1}
-   0x84 {:fn add-h   :bytes 1 :cycles 1}
-   0x85 {:fn add-l   :bytes 1 :cycles 1}
-   0x86 {:fn add-m   :bytes 1 :cycles 1}
-   0x87 {:fn adc-a   :bytes 1 :cycles 1}
-   0x88 {:fn adc-b   :bytes 1 :cycles 1}
-   0x89 {:fn adc-c   :bytes 1 :cycles 1}
-   0x8a {:fn adc-d   :bytes 1 :cycles 1}
-   0x8b {:fn adc-e   :bytes 1 :cycles 1}
-   0x8c {:fn adc-h   :bytes 1 :cycles 1}
-   0x8d {:fn adc-l   :bytes 1 :cycles 1}
-   0x8e {:fn adc-m   :bytes 1 :cycles 1}
-   0x8f {:fn adc-a   :bytes 1 :cycles 1}
-   0x90 {:fn sub-b   :bytes 1 :cycles 1}
-   0x91 {:fn sub-c   :bytes 1 :cycles 1}
-   0x92 {:fn sub-d   :bytes 1 :cycles 1}
-   0x93 {:fn sub-e   :bytes 1 :cycles 1}
-   0x94 {:fn sub-h   :bytes 1 :cycles 1}
-   0x95 {:fn sub-l   :bytes 1 :cycles 1}
-   0x96 {:fn sub-m   :bytes 1 :cycles 1}
-   0x97 {:fn sub-a   :bytes 1 :cycles 1}
-   0x98 {:fn sbb-b   :bytes 1 :cycles 1}
-   0x99 {:fn sbb-c   :bytes 1 :cycles 1}
-   0x9a {:fn sbb-d   :bytes 1 :cycles 1}
-   0x9b {:fn sbb-e   :bytes 1 :cycles 1}
-   0x9c {:fn sbb-h   :bytes 1 :cycles 1}
-   0x9d {:fn sbb-l   :bytes 1 :cycles 1}
-   0x9e {:fn sbb-m   :bytes 1 :cycles 1}
-   0x9f {:fn sbb-a   :bytes 1 :cycles 1}
-   0xa0 {:fn ana-b   :bytes 1 :cycles 1}
-   0xa1 {:fn ana-c   :bytes 1 :cycles 1}
-   0xa2 {:fn ana-d   :bytes 1 :cycles 1}
-   0xa3 {:fn ana-e   :bytes 1 :cycles 1}
-   0xa4 {:fn ana-h   :bytes 1 :cycles 1}
-   0xa5 {:fn ana-l   :bytes 1 :cycles 1}
-   ; 0xa6 {:fn sub-m   :bytes 1 :cycles 1}
-   0xa7 {:fn ana-a   :bytes 1 :cycles 1}
+  [
+    nop     lxi-b   stax-b  inx-b   inr-b   dcr-b   mvi-b   rlc
+    nop     dad-b   ldax-b  dcx-b   inr-c   dcr-c   mvi-c   rrc
+    nop     lxi-d   stax-d  inx-d   inr-d   dcr-d   mvi-d   ral
+    nop     dad-d   ldax-d  dcx-d   inr-e   dcr-e   mvi-e   rar
+    nop     lxi-h   shld    inx-h   inr-h   dcr-h   mvi-h   nop
+    nop     dad-h   lhld    dcx-h   inr-l   dcr-l   mvi-l   cma
+    nop     lxi-sp  sta     inx-sp  inr-m   dcr-m   mvi-m   stc
+    nop     dad-sp  lda     dcx-sp  inr-a   dcr-a   mvi-a   cmc
+    mov-b-b mov-b-c mov-b-d mov-b-e mov-b-h mov-b-l mov-b-m mov-b-a
+    mov-c-b mov-c-c mov-c-d mov-c-e mov-c-h mov-c-l mov-c-m mov-c-a
+    mov-d-b mov-d-c mov-d-d mov-d-e mov-d-h mov-d-l mov-d-m mov-d-a
+    mov-e-b mov-e-c mov-e-d mov-e-e mov-e-h mov-e-l mov-e-m mov-e-a
+    mov-h-b mov-h-c mov-h-d mov-h-e mov-h-h mov-h-l mov-h-m mov-h-a
+    mov-l-b mov-l-c mov-l-d mov-l-e mov-l-h mov-l-l mov-l-m mov-l-a
+    mov-m-b mov-m-c mov-m-d mov-m-e mov-m-h mov-m-l hlt     mov-m-a
+    mov-a-b mov-a-c mov-a-d mov-a-e mov-a-h mov-a-l mov-a-m mov-a-a
+    add-b   add-c   add-d   add-e   add-h   add-l   add-m   add-a
+    adc-b   adc-c   adc-d   adc-e   adc-h   adc-l   adc-m   adc-a
+    sub-b   sub-c   sub-d   sub-e   sub-h   sub-l   sub-m   sub-a
+    sbb-b   sbb-c   sbb-d   sbb-e   sbb-h   sbb-l   sbb-m   sbb-a
+    ana-b   ana-c   ana-d   ana-e   ana-h   ana-l   ana-m   ana-a
+  ])
 
-   0xcb {:fn nop    :bytes 1 :cycles 1}
-
-   0xd9 {:fn nop    :bytes 1 :cycles 1}
-
-   0xdd {:fn nop    :bytes 1 :cycles 1}
-
-   0xed {:fn nop    :bytes 1 :cycles 1}
-
-   0xfd {:fn nop    :bytes 1 :cycles 1}
-  })
+   ; 0xcb {:fn nop    :bytes 1 :cycles 1}
+   ;
+   ; 0xd9 {:fn nop    :bytes 1 :cycles 1}
+   ;
+   ; 0xdd {:fn nop    :bytes 1 :cycles 1}
+   ;
+   ; 0xed {:fn nop    :bytes 1 :cycles 1}
+   ;
+   ; 0xfd {:fn nop    :bytes 1 :cycles 1}
